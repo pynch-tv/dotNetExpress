@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using HTTPServer;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 // ReSharper disable InconsistentNaming
 
@@ -136,7 +137,7 @@ namespace HTTPServer
         /// <summary>
         /// 
         /// </summary>
-        public NameValueCollection Headers = new();
+        private readonly NameValueCollection _headers = new();
 
         /// <summary>
         /// This property is an object containing properties mapped to the named route “parameters”.
@@ -144,6 +145,8 @@ namespace HTTPServer
         /// as req.params.name. This object defaults to {}.
         /// </summary>
         public NameValueCollection Params = new();
+
+        public string? get(string key) => _headers[key];
 
         public static bool TryParse(string bytes, out Request request)
         {
@@ -170,17 +173,17 @@ namespace HTTPServer
             idx = requestLineParts[2].IndexOf('/');
             request.Protocol = requestLineParts[2][..idx].ToLower();
 
-            request.Headers.Clear();
+            request._headers.Clear();
             for (var i = 1; i < headerLines.Length; i++)
             {
                 var headerLine = headerLines[i];
                 var headerPair = headerLine.Split(":", 2, StringSplitOptions.TrimEntries);
                 if (headerPair.Length != 2) continue; // basic checking
                 // header in case insensitive (see 
-                request.Headers.Add(headerPair[0].ToLower(), headerPair[1]);
+                request._headers.Add(headerPair[0].ToLower(), headerPair[1]);
             }
 
-            request.Host = request.Headers["host"];
+            request.Host = request._headers["host"];
             request.HostName = request.Host.Split(':')[0];
 
             return true;
@@ -694,10 +697,10 @@ namespace HTTPServer
                 // error - return
             }
 
-            if (string.Equals(req.Headers["connection"], "Upgrade", StringComparison.OrdinalIgnoreCase) 
-             && string.Equals(req.Headers["upgrade"], "websocket", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(req.get("connection"), "Upgrade", StringComparison.OrdinalIgnoreCase) 
+             && string.Equals(req.get("upgrade"), "websocket", StringComparison.OrdinalIgnoreCase))
             {
-                var key = req.Headers["sec-websocket-key"];
+                var key = req.get("sec-websocket-key");
 
                 var res = new Response(tcpClient);
                 res.set("Upgrade", "WebSocket");
@@ -765,6 +768,82 @@ namespace HTTPServer
 
 internal class Program
 {
+    class BasicAuth
+    {
+        private static NameValueCollection _users = new();
+
+        private static bool _challenge;
+
+
+        public static MiddlewareCallback basicAuth(NameValueCollection users, bool challenge = true)
+        {
+            _users = users;
+            _challenge = challenge;
+
+            return auth;
+        }
+
+        private static void auth(Request req, Response res, NextCallback next = null)
+        {
+            var basicAuth = req.get("authorization");
+
+            if (!string.IsNullOrEmpty(basicAuth))
+            {
+
+                var authenticated = false;
+                if (basicAuth.StartsWith("Basic"))
+                {
+                    basicAuth = basicAuth.Substring(6);
+                    basicAuth.Trim();
+
+                    foreach (string name in _users)
+                    {
+                        var sum = name + ":" + _users[name];
+
+                        var data = Convert.FromBase64String(basicAuth);
+                        var decodedString = Encoding.UTF8.GetString(data);
+
+                        if (decodedString == sum)
+                        {
+                            authenticated = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!authenticated)
+                {
+                    if (_challenge)
+                        res.set("WWW-Authenticate", "Basic");
+                    res.status(HttpStatusCode.Unauthorized);
+                    return;
+                }
+            }
+
+            next();
+        }
+    }
+
+
+    private static void BasicAuthentication()
+    {
+        var app = new Express();
+        const int port = 8080;
+
+        NameValueCollection users = new() { { "admin", "supersecret123" } };
+        app.use(BasicAuth.basicAuth(users));
+
+        app.get("/", (req, res, next) =>
+        {
+            res.send("Hello World");
+        });
+
+        app.listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
+    }
+
     private static void Error()
     {
         var app = new Express();
@@ -984,7 +1063,7 @@ internal class Program
 
     private static void Main(string[] _)
     {
-        Middleware();
+        BasicAuthentication();
 
         Console.ReadLine();
     }
