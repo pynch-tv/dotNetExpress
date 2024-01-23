@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace HTTPServer
 {
-    public delegate void NextCallback(Error err);
+    public delegate void NextCallback(Error? err = null);
 
     public delegate void ErrorCallback(Error err, Request request, Response response, NextCallback? next = null);
 
@@ -358,10 +358,10 @@ namespace HTTPServer
                     try
                     {
                         if (null != middleware)
-                            middleware(req, res, err =>
+                            middleware(req, res, next =>
                             {
-                                if (null != err)
-                                    throw err; 
+                                if (null != next)
+                                    throw next; 
                                 gotoNext = true;
                             });
                     }
@@ -371,7 +371,7 @@ namespace HTTPServer
 
                         foreach (var errorCallback in _errorHandler)
                         {
-                            errorCallback(e as Error, req, res, err => { gotoNext = true; });
+                            errorCallback(e as Error, req, res, next => { gotoNext = true; });
                             if (!gotoNext) break;
                         }
 
@@ -408,9 +408,12 @@ namespace HTTPServer
             gotoNext = true;
             foreach (var middleware in _middlewares)
             {
-                middleware(req, res, err =>
+                gotoNext = false;
+                middleware(req, res, next =>
                 {
-
+                    if (null != next)
+                        throw next;
+                    gotoNext = true;
                 });
                 if (!gotoNext) break;
             }
@@ -831,14 +834,17 @@ internal class Program
     {
         void middleware1(Request req, Response res, NextCallback? next = null)
         {
+            next();
         }
 
         void middleware2(Request req, Response res, NextCallback? next = null)
         {
+            next();
         }
 
         void middleware3(Request req, Response res, NextCallback? next = null)
         {
+            next();
         }
 
         var app = new Express();
@@ -847,7 +853,11 @@ internal class Program
         // add a single middleware
         app.use(middleware1);
 
-   //     app.use(middlewares);
+        app.use((req, res, next) =>
+        {
+            Console.WriteLine("hello");
+            next();
+        });
 
         app.get("/", middleware2, null, middleware3);
 
@@ -974,7 +984,7 @@ internal class Program
 
     private static void Main(string[] _)
     {
-        StaticFiles();
+        Middleware();
 
         Console.ReadLine();
     }
