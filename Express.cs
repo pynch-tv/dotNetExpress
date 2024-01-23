@@ -5,13 +5,17 @@ using System.Collections.Specialized;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using HTTPServer;
-using static System.Net.Mime.MediaTypeNames;
+using System.Text.RegularExpressions;
 
 // ReSharper disable InconsistentNaming
 
 namespace HTTPServer
 {
-    public delegate void MiddlewareCallback(Request request, Response response, MiddlewareCallback? callback = null);
+    public delegate void NextCallback(Error err);
+
+    public delegate void ErrorCallback(Error err, Request request, Response response, NextCallback? next = null);
+
+    public delegate void MiddlewareCallback(Request request, Response response, NextCallback? next = null);
 
     public delegate void ListenCallback();
 
@@ -187,66 +191,93 @@ namespace HTTPServer
     {
         public HttpMethod HttpMethod;
 
-        private readonly NameValueCollection Headers = new();
+        private readonly NameValueCollection _headers = new();
 
-        public HttpStatusCode Code = HttpStatusCode.OK;
+        public readonly NameValueCollection _locals = new();
+
+        private HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
         private readonly TcpClient _client;
 
         private string _body = string.Empty;
 
+        private bool _headersSent = false;
+
         internal Response(TcpClient client)
         {
+            _headersSent = false;
             _client = client;
         }
 
         public Response status(HttpStatusCode code)
         {
-            Code = code;
-
-            return this;
-        }
-
-        public Response send(string body)
-        {
-            _body = body;
+            _httpStatusCode = code;
 
             return this;
         }
 
         public Response set(string field, string value)
         {
-            Headers[field] = value;
+            _headers[field] = value;
 
             return this;
         }
 
+        public string? get(string field)
+        {
+            return _headers[field];
+        }
+
+        public bool headersSent() => _headersSent;
+
+        /// <summary>
+        /// Sends the HTTP response.
+        ///
+        /// The body parameter.
+        /// </summary>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        public Response send(string body)
+        {
+            _body = body;
+
+            return this;
+        }
+        
         /// <summary>
         /// 
         /// </summary>
-        public void Send()
+        public void send()
         {
             _client.GetStream().Write(Encoding.UTF8.GetBytes("HTTP/1.1 "));
-            _client.GetStream().Write(Encoding.UTF8.GetBytes($"200 OK" + "\r\n"));
+            _client.GetStream().Write(Encoding.UTF8.GetBytes($"{(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}" + "\r\n"));
 
             if (!string.IsNullOrEmpty(_body))
-                Headers["content-length"] = _body.Length.ToString();
-            Headers["X-Powered-By"] = "Nexa";
-            Headers["connection"] = "close";
+                _headers["content-length"] = _body.Length.ToString();
+            _headers["connection"] = "close";
 
-            foreach (string key in Headers)
+            foreach (string key in _headers)
             {
                 _client.GetStream().Write(Encoding.UTF8.GetBytes($"{key}: "));
-                _client.GetStream().Write(Encoding.UTF8.GetBytes($"{Headers[key]}\r\n"));
+                _client.GetStream().Write(Encoding.UTF8.GetBytes($"{_headers[key]}\r\n"));
             }
 
             _client.GetStream().Write(Encoding.UTF8.GetBytes("\r\n"));
+
+            _headersSent = true;
 
             if (!string.IsNullOrEmpty(_body))
                 _client.GetStream().Write(Encoding.UTF8.GetBytes(_body));
 
             _client.Close();
             _client.Dispose();
+        }
+    }
+
+    public class Error : Exception
+    {
+        public Error(string message) : base(message)
+        {
         }
     }
 
@@ -272,13 +303,17 @@ namespace HTTPServer
 
         private Router _parent = null;
 
+        private readonly List<ErrorCallback> _errorHandler = new();
+
         private readonly List<MiddlewareCallback> _middlewares = new();
 
         private readonly List<Route> _routes = new();
 
         private readonly Dictionary<string, Router> _routers = new();
 
-        private MiddlewareCallback _catchAll = null;
+        private MiddlewareCallback? _catchAll = null;
+
+        private bool gotoNext;
 
         /// <summary>
         /// 
@@ -319,8 +354,30 @@ namespace HTTPServer
 
                 foreach (var middleware in route.Middlewares)
                 {
-                    if (null != middleware)
-                        middleware(req, res);
+                    gotoNext = false;
+                    try
+                    {
+                        if (null != middleware)
+                            middleware(req, res, err =>
+                            {
+                                if (null != err)
+                                    throw err; 
+                                gotoNext = true;
+                            });
+                    }
+                    catch (Exception e)
+                    {
+                        res.status(HttpStatusCode.InternalServerError);
+
+                        foreach (var errorCallback in _errorHandler)
+                        {
+                            errorCallback(e as Error, req, res, err => { gotoNext = true; });
+                            if (!gotoNext) break;
+                        }
+
+                        res.send(e.Message);
+                        return false;
+                    }
                 }
 
                 return true;
@@ -348,12 +405,18 @@ namespace HTTPServer
         /// <param name="res"></param>
         public void Dispatch(Request req, Response res)
         {
+            gotoNext = true;
             foreach (var middleware in _middlewares)
             {
-                middleware(req, res);
+                middleware(req, res, err =>
+                {
+
+                });
+                if (!gotoNext) break;
             }
 
-            Evaluate(req, res);
+            if (gotoNext)
+                Evaluate(req, res);
         }
 
         /// <summary>
@@ -413,9 +476,19 @@ namespace HTTPServer
             _catchAll = middleware;
         }
 
-        public void use(MiddlewareCallback middleware)
+        public void use(ErrorCallback callback)
         {
-            _middlewares.Add(middleware);
+            _errorHandler.Add(callback);
+        }
+
+        public void use(List<ErrorCallback> callbacks)
+        {
+            _errorHandler.AddRange(callbacks);
+        }
+
+        public void use(MiddlewareCallback callback)
+        {
+            _middlewares.Add(callback);
         }
 
         public void use(List<MiddlewareCallback> middlewares)
@@ -490,19 +563,19 @@ namespace HTTPServer
 
         public static MiddlewareCallback urlencoded() => parseUrlencoded;
 
-        private static void parseJson(Request req, Response res, MiddlewareCallback next = null)
+        private static void parseJson(Request req, Response res, NextCallback? next = null)
         {
         }
 
-        private static void parseText(Request req, Response res, MiddlewareCallback next = null)
+        private static void parseText(Request req, Response res, NextCallback? next = null)
         {
         }
 
-        private static void parseRaw(Request req, Response res, MiddlewareCallback next = null)
+        private static void parseRaw(Request req, Response res, NextCallback? next = null)
         {
         }
 
-        private static void parseUrlencoded(Request req, Response res, MiddlewareCallback next = null)
+        private static void parseUrlencoded(Request req, Response res, NextCallback? next = null)
         {
         }
 
@@ -525,19 +598,24 @@ namespace HTTPServer
             _router.use(mountPath, router);
         }
 
-        public void use(string path, MiddlewareCallback middleware)
+        public void use(string path, MiddlewareCallback callback)
         {
-            _router.use(path, middleware);
+            _router.use(path, callback);
         }
 
-        public void use(MiddlewareCallback middleware)
+        public void use(MiddlewareCallback callback)
         {
-            _router.use(middleware);
+            _router.use(callback);
         }
 
-        public void use(List<MiddlewareCallback> middlewares)
+        public void use(ErrorCallback callback)
         {
-            _router.use(middlewares);
+            _router.use(callback);
+        }
+
+        public void use(List<MiddlewareCallback> callback)
+        {
+            _router.use(callback);
         }
 
         public void get(string path, params MiddlewareCallback[] args)
@@ -623,7 +701,7 @@ namespace HTTPServer
                 res.set("Connection", "Upgrade");
                 res.set("Sec-WebSocket-Accept", HashKey(key));
 
-                res.Send();
+                res.send();
 
                 lock (_webSockets)
                 {
@@ -636,7 +714,7 @@ namespace HTTPServer
 
                 express._router.Dispatch(req, res);
 
-                res.Send();
+                res.send();
             }
 
         }
@@ -680,11 +758,28 @@ namespace HTTPServer
             });
         }
     }
-
 }
 
 internal class Program
 {
+    private static void Error()
+    {
+        var app = new Express();
+        const int port = 8080;
+
+        app.get("/", (req, res, next) => throw new Exception("broken"));
+
+        app.get("/next", (req, res, next) =>
+        {
+            next?.Invoke(new Error("BROKEN"));
+        });
+
+        app.listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
+    }
+
     private static void Favicon()
     {
         var app = new Express();
@@ -734,15 +829,15 @@ internal class Program
 
     private static void Middleware()
     {
-        void middleware1(Request req, Response res, MiddlewareCallback? callback = null)
+        void middleware1(Request req, Response res, NextCallback? next = null)
         {
         }
 
-        void middleware2(Request req, Response res, MiddlewareCallback? callback = null)
+        void middleware2(Request req, Response res, NextCallback? next = null)
         {
         }
 
-        void middleware3(Request req, Response res, MiddlewareCallback? callback = null)
+        void middleware3(Request req, Response res, NextCallback? next = null)
         {
         }
 
@@ -754,7 +849,7 @@ internal class Program
 
    //     app.use(middlewares);
 
-        app.get("/", middleware2, null, middleware3); //TODO ...
+        app.get("/", middleware2, null, middleware3);
 
         app.listen(port, () =>
         {
@@ -767,7 +862,7 @@ internal class Program
         var app = new Express();
         const int port = 8080;
 
-        var __dirname = "";
+        var __dirname = Directory.GetCurrentDirectory();
 
         // express on its own has no notion
         // of a "file". The express.static()
@@ -775,7 +870,7 @@ internal class Program
         // the `req.path` within the directory
         // that you pass it. In this case "GET /js/app.js"
         // will look for "./public/js/app.js".
-        app.use(Express.Static(Path.Combine("__dirname", "public")));
+        app.use(Express.Static(Path.Combine(__dirname, "public")));
 
         // if you wanted to "prefix" you may use
         // the mounting feature of Connect, for example
@@ -879,7 +974,7 @@ internal class Program
 
     private static void Main(string[] _)
     {
-        Favicon();
+        StaticFiles();
 
         Console.ReadLine();
     }
