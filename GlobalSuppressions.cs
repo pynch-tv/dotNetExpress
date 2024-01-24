@@ -5,4 +5,4 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:HTTPServer.Express.use(System.String,HTTPServer.MiddlewareCallback)")]
+[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:HTTPServer.Program.use(System.String,HTTPServer.MiddlewareCallback)")]
