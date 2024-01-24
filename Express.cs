@@ -7,18 +7,21 @@ using System.Security.Cryptography;
 using HTTPServer;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.IO;
 
 // ReSharper disable InconsistentNaming
 
 namespace HTTPServer
 {
-    public delegate void NextCallback(Error? err = null);
+    public delegate void NextCallback(Exception? err = null);
 
-    public delegate void ErrorCallback(Error err, Request request, Response response, NextCallback? next = null);
+    public delegate void ErrorCallback(Exception err, Request request, Response response, NextCallback? next = null);
 
     public delegate void MiddlewareCallback(Request request, Response response, NextCallback? next = null);
 
     public delegate void ListenCallback();
+
+    public delegate void RenderEngineCallback(string path);
 
     public enum HttpMethod
     {
@@ -234,6 +237,15 @@ namespace HTTPServer
         public bool headersSent() => _headersSent;
 
         /// <summary>
+        /// Renders a view and sends the rendered HTML string to the client.
+        /// Optional parameters:
+        /// </summary>
+        public void render(string view, NameValueCollection locals)
+        {
+
+        }
+
+        /// <summary>
         /// Sends the HTTP response.
         ///
         /// The body parameter.
@@ -277,18 +289,11 @@ namespace HTTPServer
         }
     }
 
-    public class Error : Exception
-    {
-        public Error(string message) : base(message)
-        {
-        }
-    }
-
     internal class Route
     {
         public HttpMethod Method { get; }
         public string Path { get; }
-        public List<MiddlewareCallback> Middlewares { get; }
+        public List<MiddlewareCallback?> Middlewares { get; }
 
         public List<string> Params = new();
 
@@ -350,8 +355,10 @@ namespace HTTPServer
         /// <returns></returns>
         private bool Evaluate(Request req, Response res)
         {
-            foreach (var route in _routes)
+            for (var index = 0; index < _routes.Count; index++)
             {
+                var route = _routes[index];
+
                 if (route.Method != req.Method) continue;
                 if (!Match(route.Path, req)) continue;
 
@@ -360,13 +367,12 @@ namespace HTTPServer
                     gotoNext = false;
                     try
                     {
-                        if (null != middleware)
-                            middleware(req, res, next =>
-                            {
-                                if (null != next)
-                                    throw next; 
-                                gotoNext = true;
-                            });
+                        middleware?.Invoke(req, res, next =>
+                        {
+                            if (null != next)
+                                throw next;
+                            gotoNext = true;
+                        });
                     }
                     catch (Exception e)
                     {
@@ -374,7 +380,7 @@ namespace HTTPServer
 
                         foreach (var errorCallback in _errorHandler)
                         {
-                            errorCallback(e as Error, req, res, next => { gotoNext = true; });
+                            errorCallback(e as Exception, req, res, next => { gotoNext = true; });
                             if (!gotoNext) break;
                         }
 
@@ -540,6 +546,10 @@ namespace HTTPServer
 
         private readonly List<MiddlewareCallback> _callbacks = new();
 
+        private readonly Dictionary<string, RenderEngineCallback> _engines = new();
+
+        private readonly NameValueCollection _settings = new();
+
         /// <summary>
         /// This is a built-in middleware function in Express. It serves static files and is based on serve-static.
         ///
@@ -592,6 +602,57 @@ namespace HTTPServer
         public Router Router()
         {
             return _router;
+        }
+
+        /// <summary>
+        /// Returns true if the Boolean setting name is disabled (false), where name is one of
+        /// the properties from the app settings table.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public bool disabled(string key) => (_settings[key]!.Equals("false", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// Sets the Boolean setting name to false, where name is one of the properties from
+        /// the app settings table. Calling app.set('foo', false) for a Boolean property
+        /// is the same as calling app.disable('foo').
+        /// </summary>
+        /// <param name="key"></param>
+        public void disable(string key) => _settings[key] = "false";
+
+        /// <summary>
+        /// Returns true if the setting name is enabled (true), where name is one of the
+        /// properties from the app settings table.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public bool enabled(string key) => (_settings[key]!.Equals("true", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// Sets the Boolean setting name to true, where name is one of the properties from
+        /// the app settings table. Calling app.set('foo', true) for a Boolean property is
+        /// the same as calling app.enable('foo').
+        /// </summary>
+        /// <param name="key"></param>
+        public void enable(string key) => _settings[key] = "true";
+
+        /// <summary>
+        /// Assigns setting name to value. You may store any value that you want, but certain
+        /// names can be used to configure the behavior of the server. These special names are
+        /// listed in the app settings table.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        public void set(string key, string value) => _settings[key] = value;
+
+        /// <summary>
+        /// Returns the value of name app setting, where name is one of the strings in the
+        /// app settings table. For example:
+        /// </summary>
+        /// <param name="key"></param>
+        public string? get(string key)
+        {
+            return _settings[key];
         }
 
         public void use(string mountPath)
@@ -651,6 +712,18 @@ namespace HTTPServer
 
         public List<MiddlewareCallback> Middlewares() => _callbacks;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ext"></param>
+        /// <param name="engine"></param>
+        public void engine(string ext, RenderEngineCallback engine)
+        {
+            if (!ext.StartsWith("."))
+                ext = "." + ext;
+
+            _engines[ext] = engine;
+        }
 
         private static readonly List<TcpClient> _webSockets = new();
 
@@ -768,7 +841,35 @@ namespace HTTPServer
 
 internal class Program
 {
-    class BasicAuth
+    private static void Markdown()
+    {
+        var app = new Express();
+        const int port = 8080;
+
+        var __dirname = Directory.GetCurrentDirectory();
+
+        app.engine("md", path =>
+        {
+            // TODO
+        });
+
+        app.set("views", Path.Combine(__dirname, "views"));
+
+        // make it the default, so we don't need .md
+        app.set("view engine", "md");
+
+        app.get("/", (req, res, next) =>
+        {
+            res.render("index", new NameValueCollection() { { "title", "Markdown Example" } });
+        });
+
+        app.listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
+    }
+
+    private class BasicAuth
     {
         private static NameValueCollection _users = new();
 
@@ -824,7 +925,6 @@ internal class Program
         }
     }
 
-
     private static void BasicAuthentication()
     {
         var app = new Express();
@@ -853,7 +953,7 @@ internal class Program
 
         app.get("/next", (req, res, next) =>
         {
-            next?.Invoke(new Error("BROKEN"));
+            next?.Invoke(new Exception("BROKEN"));
         });
 
         app.listen(port, () =>
@@ -1063,7 +1163,7 @@ internal class Program
 
     private static void Main(string[] _)
     {
-        BasicAuthentication();
+        Markdown();
 
         Console.ReadLine();
     }
