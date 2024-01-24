@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove=".gitignore" />
+    <None Remove="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="examples\RouteSeparation\views\" />
+    <Folder Include="examples\RouteSeparation\public\" />
     <Folder Include="examples\StaticFiles\public\" />
   </ItemGroup>
 

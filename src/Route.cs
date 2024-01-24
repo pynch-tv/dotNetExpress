@@ -1,5 +1,6 @@
 ﻿namespace HTTPServer;
 
+// ReSharper disable InconsistentNaming
 internal class Route
 {
     public HttpMethod Method { get; }

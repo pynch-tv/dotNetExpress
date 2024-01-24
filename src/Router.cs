@@ -1,5 +1,7 @@
 ﻿using System.Net;
 
+// ReSharper disable InconsistentNaming
+
 namespace HTTPServer;
 
 internal class Router
@@ -29,14 +31,14 @@ internal class Router
     private static bool Match(string leftPath, Request req)
     {
         var leftSubDirs = leftPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var rightSubDirs = req.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var rightSubDirs = req.path.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
         if (leftSubDirs.Length != rightSubDirs.Length) return false;
 
         for (var i = 0; i < leftSubDirs.Length; i++)
         {
             if (leftSubDirs[i].StartsWith(':'))
-                req.Params[leftSubDirs[i][1..]] = rightSubDirs[i];
+                req.@params[leftSubDirs[i][1..]] = rightSubDirs[i];
             else
             if (leftSubDirs[i] != rightSubDirs[i]) return false;
         }

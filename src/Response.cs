@@ -4,6 +4,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
+// ReSharper disable InconsistentNaming
+
 namespace HTTPServer;
 
 public class Response
@@ -22,7 +24,7 @@ public class Response
 
     private bool _headersSent = false;
 
-    private Express _app;
+    private readonly Express _app;
 
     /// <summary>
     /// 
@@ -49,7 +51,8 @@ public class Response
     }
 
     /// <summary>
-    /// 
+    /// This property holds a reference to the instance of the Express application that is using the middleware.
+    /// res.app is identical to the req.app property in the request object.
     /// </summary>
     /// <returns></returns>
     internal Express app()
@@ -58,7 +61,7 @@ public class Response
     }
 
     /// <summary>
-    /// 
+    /// Sets the response’s HTTP header field to value. To set multiple fields at once, pass an object as the parameter.
     /// </summary>
     /// <param name="field"></param>
     /// <param name="value"></param>
@@ -71,7 +74,7 @@ public class Response
     }
 
     /// <summary>
-    /// 
+    /// Returns the HTTP response header specified by field. The match is case-insensitive.
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
@@ -81,7 +84,7 @@ public class Response
     }
 
     /// <summary>
-    /// 
+    /// Boolean property that indicates if the app sent HTTP headers for the response.
     /// </summary>
     /// <returns></returns>
     public bool headersSent() => _headersSent;
@@ -90,6 +93,8 @@ public class Response
     /// Renders a view and sends the rendered HTML string to the client.
     /// Optional parameters:
     /// </summary>
+    /// <param name="view"></param>
+    /// <param name="locals"></param>
     public void render(string view, NameValueCollection locals)
     {
         _app.render(view, null);
@@ -102,26 +107,36 @@ public class Response
     /// </summary>
     /// <param name="body"></param>
     /// <returns></returns>
-    public Response send(string body)
+    public Response send(string body = "")
     {
         _body = body;
 
         return this;
     }
-        
+
+    public Response send(object body)
+    {
+        return this;
+    }
+
+    public Response send(bool body)
+    {
+        return this;
+    }
+
     /// <summary>
     /// 
     /// </summary>
-    public void send()
+    internal void _send()
     {
         // _client must still be alive!
         
-        // finalize headers, based on content
+        // finalize header content, based on content
         if (!string.IsNullOrEmpty(_body))
             _headers["content-length"] = _body.Length.ToString();
         _headers["connection"] = "close";
 
-        // Build string
+        // Build string in memory and write out once
         var headerContent = new StringBuilder();
         headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
         if (!string.IsNullOrEmpty(_body))
@@ -131,13 +146,13 @@ public class Response
             headerContent.AppendLine($"{key}: {_headers[key]}");
         headerContent.AppendLine();
 
+        // Prepare to send it out
         var headerString = headerContent.ToString();
         var header = Encoding.UTF8.GetBytes(headerString);
         var headerLength = Encoding.UTF8.GetByteCount(headerString);
 
         var body = Encoding.UTF8.GetBytes(_body);
         var bodyLength = Encoding.UTF8.GetByteCount(_body);
-
 
         var stream = _client.GetStream();
         {

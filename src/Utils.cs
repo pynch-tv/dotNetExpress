@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using HTTPServer;
 
+// ReSharper disable InconsistentNaming
+
 namespace dotNetExpress.src
 {
     internal class Utils
@@ -69,7 +71,7 @@ namespace dotNetExpress.src
             res.set("Connection", "Upgrade");
             res.set("Sec-WebSocket-Accept", HashKey(key));
 
-            res.send();
+            res._send();
 
             //lock (_webSockets)
             //{
@@ -85,7 +87,7 @@ namespace dotNetExpress.src
             var app = res.app();
             app.Router().Dispatch(req, res);
 
-            res.send();
+            res._send();
         }
 
         /// <summary>
