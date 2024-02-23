@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using HttpMethod = System.Net.Http.HttpMethod;
 
 namespace dotNetExpress;
 
@@ -17,7 +16,7 @@ public class Response
 
     private HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
-    private readonly TcpClient _client;
+    private readonly Stream _stream;
 
     private string _body = string.Empty;
 
@@ -29,12 +28,12 @@ public class Response
     /// 
     /// </summary>
     /// <param name="app"></param>
-    /// <param name="client"></param>
-    internal Response(Express app, TcpClient client)
+    /// <param name="stream"></param>
+    internal Response(Express app, Stream stream)
     {
         _app = app;
         _headersSent = false;
-        _client = client;
+        _stream = stream;
     }
 
     #region Properties
@@ -350,15 +349,11 @@ public class Response
         var body = Encoding.UTF8.GetBytes(_body);
         var bodyLength = Encoding.UTF8.GetByteCount(_body);
 
-        var stream = _client.GetStream();
         {
-            stream.Write(header, 0, headerLength);
+            _stream.Write(header, 0, headerLength);
             _headersSent = true;
-            stream.Write(body, 0, bodyLength);
+            _stream.Write(body, 0, bodyLength);
         }
-
-        _client.Close();
-        _client.Dispose();
     }
 
     #endregion

@@ -15,7 +15,7 @@ internal partial class Examples
         // the `req.path` within the directory
         // that you pass it. In this case "GET /js/app.js"
         // will look for "./public/js/app.js".
-        app.Use(Express.Static(Path.Combine(__dirname, "public")));
+        app.Use(Express.Static(Path.Combine(__dirname, "public"), new StaticOptions { Immutable = false}));
 
         // if you wanted to "prefix" you may use
         // the mounting feature of Connect, for example

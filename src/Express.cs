@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Collections.Specialized;
+using System.Text;
 
 namespace dotNetExpress;
 
@@ -13,6 +14,8 @@ public class Express
     private TcpListener? _listener;
 
     private readonly List<MiddlewareCallback> _callbacks = new();
+
+    private static MiddlewareCallback _static = null;
 
     private readonly Dictionary<string, RenderEngineCallback> _engines = new();
 
@@ -37,7 +40,12 @@ public class Express
     /// </summary>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public static MiddlewareCallback Json(jsonOptions? options = null)
+    public static MiddlewareCallback Json()
+    {
+        return ParseJson;
+    }
+
+    public static MiddlewareCallback Json(jsonOptions? options)
     {
         return ParseJson;
     }
@@ -51,11 +59,11 @@ public class Express
     /// and fall-backs.
     /// </summary>
     /// <param name="root"></param>
+    /// <param name="options"></param>
     /// <returns></returns>
     public static MiddlewareCallback Static(string root, StaticOptions? options = null)
     {
-        throw new NotImplementedException();
-        return null;
+        return _static;
     }
 
     /// <summary>
@@ -77,7 +85,7 @@ public class Express
     /// empty object ({}) if there was no body to parse, the Content-Type was not matched, or an error occurred.
     /// </summary>
     /// <returns></returns>
-    public static MiddlewareCallback Raw()
+    public static MiddlewareCallback Raw(jsonOptions? options = null)
     {
         return ParseRaw;
     }
@@ -98,20 +106,89 @@ public class Express
         return ParseUrlencoded;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="req"></param>
+    /// <param name="res"></param>
+    /// <param name="next"></param>
     private static void ParseJson(Request req, Response res, NextCallback? next = null)
     {
+        if (req.Body is { Length: > 0 })
+        {
+            //  already parsed
+            next?.Invoke(null);
+            return;
+        }
+
+        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+
+            var sb = new byte[contentLength];
+            for (var i = 0; i < contentLength; i++)
+                sb[i] = (byte)req.StreamReader.Read();
+
+            req.Body = Encoding.UTF8.GetString(sb);
+        }
+
+        next?.Invoke(null);
     }
 
     private static void ParseText(Request req, Response res, NextCallback? next = null)
     {
+        if (req.Body is { Length: > 0 })
+        {
+            //  already parsed
+            next?.Invoke(null);
+            return;
+        }
+
+        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+        }
+
+        next?.Invoke(null);
     }
 
     private static void ParseRaw(Request req, Response res, NextCallback? next = null)
     {
+        if (req.Body is { Length: > 0 })
+        {
+            //  already parsed
+            next?.Invoke(null);
+            return;
+        }
+
+        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+
+            var sb = new byte[contentLength];
+            for (var i = 0; i < contentLength; i++)
+                sb[i] = (byte)req.StreamReader.Read();
+
+        }
+
+        next?.Invoke(null);
     }
 
     private static void ParseUrlencoded(Request req, Response res, NextCallback? next = null)
     {
+        if (req.Body is { Length: > 0 })
+        {
+            //  already parsed
+            next?.Invoke(null);
+            return;
+        }
+
+        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+        }
+
+        next?.Invoke(null);
     }
 
     #endregion

@@ -7,13 +7,15 @@ public class Request
 {
     private readonly NameValueCollection _headers = new();
 
+    internal StreamReader StreamReader;
+
     /// <summary>
     /// 
     /// </summary>
     /// <param name="app"></param>
     public Request(Express app)
     {
-        this.app = app;
+        this.App = app;
     }
 
     #region Properties
@@ -23,27 +25,27 @@ public class Request
     /// res.app is identical to the req.app property in the request object.
     /// </summary>
     /// <returns></returns>
-    public Express app { get; private set; }
+    public Express App { get; private set; }
     
     /// <summary>
     /// The URL path on which a router instance was mounted.
     /// The req.baseUrl property is similar to the mountpath property of the app object,
     /// except app.mountpath returns the matched path pattern(s).
     /// </summary>
-    public string baseUrl;
+    public string BaseUrl;
 
     /// <summary>
     /// Contains key-value pairs of data submitted in the request body. By default,
     /// it is undefined, and is populated when you use body-parsing middleware such as
     /// express.json() or express.urlencoded().
     /// </summary>
-    public string body = null;
+    public string? Body = null;
 
     /// <summary>
     /// When using cookie-parser middleware, this property is an object that contains
     /// cookies sent by the request. If the request contains no cookies, it defaults to {}.
     /// </summary>
-    public string cookies = "";
+    public string Cookies = "";
 
     /// <summary>
     /// When the response is still “fresh” in the client’s cache true is returned, otherwise\
@@ -55,12 +57,12 @@ public class Request
     ///
     /// Further details for how cache validation works can be found in the HTTP/1.1 Caching Specification.
     /// </summary>
-    public bool fresh;
+    public bool Fresh;
 
     /// <summary>
     /// Contains the host derived from the HostName HTTP header.
     /// </summary>
-    public string hostname;
+    public string Hostname;
 
     /// <summary>
     /// Contains the remote IP address of the request.
@@ -69,7 +71,7 @@ public class Request
     /// derived from the left-most entry in the X-Forwarded-For header. This header can be set
     /// by the client or by the proxy.
     /// </summary>
-    public IPAddress ip;
+    public IPAddress Ip;
 
     /// <summary>
     /// When the trust proxy setting does not evaluate to false, this property contains an
@@ -79,7 +81,7 @@ public class Request
     /// For example, if X-Forwarded-For is client, proxy1, proxy2, req.ips would be
     /// ["client", "proxy1", "proxy2"], where proxy2 is the furthest downstream.
     /// </summary>
-    public IPAddress[] ips;
+    public IPAddress[] Ips;
 
     /// <summary>
     /// Contains a string corresponding to the HTTP method of the request: GET, POST, PUT, and so on.
@@ -91,19 +93,19 @@ public class Request
     /// allowing you to rewrite req.url freely for internal routing purposes. For example,
     /// the “mounting” feature of app.use() will rewrite req.url to strip the mount point.
     /// </summary>
-    public string originalUrl;
+    public string OriginalUrl;
 
     /// <summary>
     /// This property is an object containing properties mapped to the named route “parameters”.
     /// For example, if you have the route /user/:name, then the “name” property is available
     /// as req.params.name. This object defaults to {}.
     /// </summary>
-    public NameValueCollection @params = new();
+    public NameValueCollection Params = new();
 
     /// <summary>
     /// Contains the path part of the request URL.
     /// </summary>
-    public string path;
+    public string Path;
 
     /// <summary>
     /// Contains the request protocol string: either http or (for TLS requests) https.
@@ -112,30 +114,30 @@ public class Request
     /// the value of the X-Forwarded-Proto header field if present. This header can be
     /// set by the client or by the proxy.
     /// </summary>
-    public string protocol;
+    public string Protocol;
 
     /// <summary>
     /// This property is an object containing a property for each query string parameter
     /// in the route. When query parser is set to disabled, it is an empty object {},
     /// otherwise it is the result of the configured query parser.
     /// </summary>
-    public string query = string.Empty;
+    public string Query = string.Empty;
 
     /// <summary>
     /// This property holds a reference to the response object that relates to this request object.
     /// </summary>
-    public Response res;
+    public Response Res;
 
     /// <summary>
     /// Contains the currently-matched route, a string.
     /// </summary>
-    public dynamic route;
+    public dynamic Route;
 
     /// <summary>
     /// A Boolean property that is true if a TLS connection is established.
     /// Equivalent to: req.protocol == "https"
     /// </summary>
-    public bool secure => protocol.Equals("https");
+    public bool Secure => Protocol.Equals("https");
 
     /// <summary>
     /// When using cookie-parser middleware, this property contains signed cookies sent by the request,
@@ -144,24 +146,24 @@ public class Request
     /// Note that signing a cookie does not make it “hidden” or encrypted; but simply prevents tampering
     /// (because the secret used to sign is private).
     /// </summary>
-    public int signedCookies;
+    public int SignedCookies;
 
     /// <summary>
     /// Indicates whether the request is “stale,” and is the opposite of req.fresh.
     /// For more information, see req.fresh.
     /// </summary>
-    public bool stale => !fresh;
+    public bool Stale => !Fresh;
 
     /// <summary>
     /// An array of subdomains in the domain name of the request.
     /// </summary>
-    public string[] subdomains;
+    public string[] Subdomains;
 
     /// <summary>
     /// A Boolean property that is true if the request’s X-Requested-With header field is “XMLHttpRequest”,
     /// indicating that the request was issued by a client library such as jQuery.
     /// </summary>
-    public bool xhr;
+    public bool Xhr;
 
     #endregion
 
@@ -267,32 +269,38 @@ public class Request
     /// <summary>
     /// 
     /// </summary>
+    /// <param name="app"></param>
     /// <param name="headerLines"></param>
+    /// <param name="client"></param>
     /// <param name="request"></param>
     /// <returns></returns>
     internal static bool TryParse(Express app, string[] headerLines, out Request request)
     {
+        // create out variable
         request = new Request(app);
 
+        #region First line : Method url Protocol
         var requestLine = headerLines[0];
         var requestLineParts = requestLine.Split(' ');
 
         if (!Enum.TryParse(requestLineParts[0], out request.Method))
             return false;
 
-        request.originalUrl = requestLineParts[1];
-        var idx = request.originalUrl.LastIndexOf('?');
+        request.OriginalUrl = requestLineParts[1];
+        var idx = request.OriginalUrl.LastIndexOf('?');
         if (idx > -1)
         {
-            request.query = request.originalUrl[(idx + 1)..];
-            request.path = request.originalUrl[..idx];
+            request.Query = request.OriginalUrl[(idx + 1)..];
+            request.Path = request.OriginalUrl[..idx];
         }
         else
-            request.path = request.originalUrl;
+            request.Path = request.OriginalUrl;
 
         idx = requestLineParts[2].IndexOf('/');
-        request.protocol = requestLineParts[2][..idx].ToLower();
+        request.Protocol = requestLineParts[2][..idx].ToLower();
+        #endregion
 
+        #region Headers
         request._headers.Clear();
         for (var i = 1; i < headerLines.Length; i++)
         {
@@ -303,8 +311,13 @@ public class Request
             request._headers.Add(headerPair[0].ToLower(), headerPair[1]);
         }
 
-        request.hostname = request._headers["host"];
-        request.hostname = request.hostname.Split(':')[0];
+        request.Hostname = request._headers["host"];
+        //request.Hostname = request.Hostname.Split(':')[0];
+
+        if (null != request._headers["X-Requested-With"])
+            request.Xhr = request._headers["X-Requested-With"]!.Equals("XMLHttpRequest");
+
+        #endregion
 
         return true;
     }

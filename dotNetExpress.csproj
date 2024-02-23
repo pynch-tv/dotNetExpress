@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Remove="examples\Cookie-sessions\Index.cs" />
+    <Compile Remove="examples\Static-Files\public\js\app.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,11 +20,11 @@
   <ItemGroup>
     <Folder Include="examples\RouteSeparation\views\" />
     <Folder Include="examples\RouteSeparation\public\" />
-    <Folder Include="examples\StaticFiles\public\" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="examples\Cookie-sessions\Index.cs" />
+    <None Include="examples\Static-Files\public\js\app.cs" />
   </ItemGroup>
 
 </Project>

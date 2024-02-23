@@ -29,14 +29,14 @@ public class Router
     private static bool Match(string leftPath, Request req)
     {
         var leftSubDirs = leftPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var rightSubDirs = req.path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var rightSubDirs = req.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
         if (leftSubDirs.Length != rightSubDirs.Length) return false;
 
         for (var i = 0; i < leftSubDirs.Length; i++)
         {
             if (leftSubDirs[i].StartsWith(':'))
-                req.@params[leftSubDirs[i][1..]] = rightSubDirs[i];
+                req.Params[leftSubDirs[i][1..]] = rightSubDirs[i];
             else
             if (leftSubDirs[i] != rightSubDirs[i]) return false;
         }

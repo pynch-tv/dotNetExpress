@@ -1,4 +1,6 @@
-﻿namespace dotNetExpress.examples;
+﻿using static System.Net.Mime.MediaTypeNames;
+
+namespace dotNetExpress.examples;
 
 internal partial class Examples
 {
@@ -7,9 +9,12 @@ internal partial class Examples
         var app = new Express();
         const int port = 8080;
 
-        //    app.use(Express.json());
+//        app.Use(Express.Json());
 
-        app.Get("/", Express.Json());
+        app.Post("/v1/servers/XT2/subscribe", Express.Json(),  (req, res, next) =>
+        {
+            res.Send("Hello World");
+        });
 
         app.Listen(port, () =>
         {

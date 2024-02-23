@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -10,7 +11,6 @@ internal class Utils
     {
         public Express Express { get; }
         public TcpClient TcpClient { get; }
-
         private Parameters(Express express, TcpClient tcpClient)
         {
             Express = express;
@@ -94,17 +94,19 @@ internal class Utils
         if (stateInfo is not Parameters param) return;
 
         var tcpClient = param.TcpClient;
+        var stream = tcpClient.GetStream();
         var express = param.Express;
 
         // Read the http headers
         // Note: the body part is NOT read at this stage
         var headerLines = new List<string>();
-        var sr = new StreamReader(tcpClient.GetStream());
+        var streamReader = new StreamReader(stream, Encoding.UTF8);
         {
             while (true)
             {
-                var line = sr.ReadLine();
-                if (string.IsNullOrEmpty(line)) break;
+                var line = streamReader.ReadLine();
+                if (string.IsNullOrEmpty(line)) 
+                    break;
                 headerLines.Add(line);
             }
         }
@@ -116,12 +118,17 @@ internal class Utils
             return;
         }
 
+        // get the IP from the remove endPoint
+        if (tcpClient.Client.RemoteEndPoint is IPEndPoint ipEndPoint)
+            req.Ip = ipEndPoint.Address;
+
         // Make Response object
-        req.res = new Response(express, tcpClient);
+        req.Res = new Response(express, stream);
+        req.StreamReader = streamReader;
 
         if (IsWebSocketUpgradeRequest(req))
         {
-            DoWebSocketUpgradeRequest(req, req.res);
+            DoWebSocketUpgradeRequest(req, req.Res);
 
             // These socket are not disposed, but kept!
             lock (_webSockets)
@@ -131,8 +138,7 @@ internal class Utils
         }
         else
         {
-            CompleteHttpRequest(req, req.res);
+            CompleteHttpRequest(req, req.Res);
         }
-
     }
 }
