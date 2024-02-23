@@ -115,8 +115,7 @@ public class Express
     private static void ParseJson(Request req, Response res, NextCallback? next = null)
     {
         if (req.Body is { Length: > 0 })
-        {
-            //  already parsed
+        {   //  already parsed
             next?.Invoke(null);
             return;
         }
@@ -126,8 +125,7 @@ public class Express
             var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
 
             var sb = new byte[contentLength];
-            for (var i = 0; i < contentLength; i++)
-                sb[i] = (byte)req.StreamReader.Read();
+            req.StreamReader.ReadExactly(sb, 0, sb.Length);
 
             req.Body = Encoding.UTF8.GetString(sb);
         }
@@ -166,9 +164,7 @@ public class Express
             var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
 
             var sb = new byte[contentLength];
-            for (var i = 0; i < contentLength; i++)
-                sb[i] = (byte)req.StreamReader.Read();
-
+            var bytesRead = req.StreamReader.Read(sb, 0, sb.Length);
         }
 
         next?.Invoke(null);

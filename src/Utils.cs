@@ -100,7 +100,7 @@ internal class Utils
         // Read the http headers
         // Note: the body part is NOT read at this stage
         var headerLines = new List<string>();
-        var streamReader = new StreamReader(stream, Encoding.UTF8);
+        var streamReader = new MessageBodyStreamReader(stream);
         {
             while (true)
             {
@@ -124,8 +124,14 @@ internal class Utils
 
         // Make Response object
         req.Res = new Response(express, stream);
-        req.StreamReader = streamReader;
 
+        if (!string.IsNullOrEmpty(req.Get("content-length")))
+        {
+            var contentLength = int.Parse(req.Get("content-length"));
+            req.StreamReader = streamReader;
+            req.StreamReader.SetLength(contentLength);
+        }
+        
         if (IsWebSocketUpgradeRequest(req))
         {
             DoWebSocketUpgradeRequest(req, req.Res);

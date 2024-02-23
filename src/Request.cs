@@ -7,7 +7,7 @@ public class Request
 {
     private readonly NameValueCollection _headers = new();
 
-    internal StreamReader StreamReader;
+    internal MessageBodyStreamReader StreamReader = null;
 
     /// <summary>
     /// 

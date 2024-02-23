@@ -1,6 +1,4 @@
-﻿using static System.Net.Mime.MediaTypeNames;
-
-namespace dotNetExpress.examples;
+﻿namespace dotNetExpress.examples;
 
 internal partial class Examples
 {
