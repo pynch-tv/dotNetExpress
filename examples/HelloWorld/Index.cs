@@ -5,15 +5,15 @@
 
         internal static void HelloWorld()
         {
-            var app = new HTTPServer.Express();
+            var app = new Express();
             const int port = 8080;
 
-            app.get("/", (req, res, next) =>
+            app.Get("/", (req, res, next) =>
             {
-                res.send("Hello World");
+                res.Send("Hello World");
             });
 
-            app.listen(port, () =>
+            app.Listen(port, () =>
             {
                 Console.WriteLine($"Example app listening on port {port}");
             });

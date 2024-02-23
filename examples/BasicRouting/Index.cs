@@ -1,36 +1,35 @@
-﻿namespace dotNetExpress.examples
+﻿namespace dotNetExpress.examples;
+
+internal partial class Examples
 {
-    internal partial class Examples
+    internal static void BasicRouting()
     {
-        internal static void BasicRouting()
+        var app = new Express();
+        const int port = 8080;
+
+        app.Get("/", (req, res, next) =>
         {
-            var app = new HTTPServer.Express();
-            const int port = 8080;
+            res.Send("Hello World!");
+        });
 
-            app.get("/", (req, res, next) =>
-            {
-                res.send("Hello World!");
-            });
+        app.Post("/", (req, res, next) =>
+        {
+            res.Send("Got a POST request");
+        });
 
-            app.post("/", (req, res, next) =>
-            {
-                res.send("Got a POST request");
-            });
+        app.Put("/user", (req, res, next) =>
+        {
+            res.Send("Got a POST request");
+        });
 
-            app.put("/user", (req, res, next) =>
-            {
-                res.send("Got a POST request");
-            });
+        app.Delete("/user", (req, res, next) =>
+        {
+            res.Send("Got a POST request");
+        });
 
-            app.remove("/user", (req, res, next) =>
-            {
-                res.send("Got a POST request");
-            });
-
-            app.listen(port, () =>
-            {
-                Console.WriteLine($"Example app listening on port {port}");
-            });
-        }
+        app.Listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
     }
 }

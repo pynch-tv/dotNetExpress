@@ -1,23 +1,22 @@
-﻿namespace dotNetExpress.examples
+﻿namespace dotNetExpress.examples;
+
+internal partial class Examples
 {
-    internal partial class Examples
+    internal static void Error()
     {
-        internal static void Error()
+        var app = new Express();
+        const int port = 8080;
+
+        app.Get("/", (req, res, next) => throw new Exception("broken"));
+
+        app.Get("/next", (req, res, next) =>
         {
-            var app = new HTTPServer.Express();
-            const int port = 8080;
+            next?.Invoke(new Exception("BROKEN"));
+        });
 
-            app.get("/", (req, res, next) => throw new Exception("broken"));
-
-            app.get("/next", (req, res, next) =>
-            {
-                next?.Invoke(new Exception("BROKEN"));
-            });
-
-            app.listen(port, () =>
-            {
-                Console.WriteLine($"Example app listening on port {port}");
-            });
-        }
+        app.Listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
     }
 }

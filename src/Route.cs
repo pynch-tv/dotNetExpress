@@ -1,15 +1,20 @@
-﻿namespace HTTPServer;
+﻿namespace dotNetExpress;
 
-// ReSharper disable InconsistentNaming
 internal class Route
 {
     public HttpMethod Method { get; }
     public string Path { get; }
-    public List<MiddlewareCallback?> Middlewares { get; }
+    public MiddlewareCallback?[] Middlewares { get; }
 
     public List<string> Params = new();
 
-    public Route(HttpMethod method, string path, List<MiddlewareCallback> middlewares)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="method"></param>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public Route(HttpMethod method, string path, MiddlewareCallback[] middlewares)
     {
         Method = method;
         Path = path;

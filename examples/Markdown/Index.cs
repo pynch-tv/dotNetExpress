@@ -1,36 +1,35 @@
 ﻿using System.Collections.Specialized;
 
-namespace dotNetExpress.examples
+namespace dotNetExpress.examples;
+
+internal partial class Examples
 {
-    internal partial class Examples
+    internal static void Markdown()
     {
-        internal static void Markdown()
+        var app = new Express();
+        const int port = 8080;
+
+        var __dirname = Directory.GetCurrentDirectory();
+
+        app.Engine("md", path =>
         {
-            var app = new HTTPServer.Express();
-            const int port = 8080;
+            var text = File.ReadAllText("textFile");
+            //    var html = marked.parse(str).replace(/\{ ([^}]+)\}/g, function(_, name)
+        });
 
-            var __dirname = Directory.GetCurrentDirectory();
+        app.Set("views", Path.Combine(__dirname, "views"));
 
-            app.engine("md", path =>
-            {
-                var text = File.ReadAllText("textFile");
-                //    var html = marked.parse(str).replace(/\{ ([^}]+)\}/g, function(_, name)
-            });
+        // make it the default, so we don't need .md
+        app.Set("view engine", "md");
 
-            app.set("views", Path.Combine(__dirname, "views"));
+        app.Get("/", (req, res, next) =>
+        {
+            res.Render("index", new NameValueCollection() { { "title", "Markdown Example" } });
+        });
 
-            // make it the default, so we don't need .md
-            app.set("view engine", "md");
-
-            app.get("/", (req, res, next) =>
-            {
-                res.render("index", new NameValueCollection() { { "title", "Markdown Example" } });
-            });
-
-            app.listen(port, () =>
-            {
-                Console.WriteLine($"Example app listening on port {port}");
-            });
-        }
+        app.Listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
     }
 }

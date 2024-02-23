@@ -1,6 +1,4 @@
-﻿namespace HTTPServer;
-
-// ReSharper disable InconsistentNaming
+﻿namespace dotNetExpress;
 
 internal class View
 {

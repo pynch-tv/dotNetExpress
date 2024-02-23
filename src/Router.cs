@@ -1,10 +1,8 @@
 ﻿using System.Net;
 
-// ReSharper disable InconsistentNaming
+namespace dotNetExpress;
 
-namespace HTTPServer;
-
-internal class Router
+public class Router
 {
     public string MountPath = string.Empty;
 
@@ -75,7 +73,7 @@ internal class Router
                 }
                 catch (Exception e)
                 {
-                    res.status(HttpStatusCode.InternalServerError);
+                    res.Status(HttpStatusCode.InternalServerError);
 
                     foreach (var errorCallback in _errorHandler)
                     {
@@ -83,7 +81,7 @@ internal class Router
                         if (!gotoNext) break;
                     }
 
-                    res.send(e.Message);
+                    res.Send(e.Message);
                     return false;
                 }
             }
@@ -130,14 +128,31 @@ internal class Router
             Evaluate(req, res);
     }
 
+    #region Methods
+
     /// <summary>
-    /// 
+    /// This method is just like the router.METHOD() methods, except that it matches all HTTP methods (verbs).
+    ///
+    /// This method is extremely useful for mapping “global” logic for specific path prefixes or arbitrary matches.
+    /// For example, if you placed the following route at the top of all other route definitions, it would require
+    /// that all routes from that point on would require authentication, and automatically load a user. Keep in mind
+    /// that these callbacks do not have to act as end points; loadUser can perform a task, then call next() to
+    /// continue matching subsequent routes.
+    /// </summary>
+    public void All(string path, params MiddlewareCallback[] args)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// The router.METHOD() methods provide the routing functionality in Express, where METHOD is one of the HTTP methods,
+    /// such as GET, PUT, POST, and so on, in lowercase. Thus, the actual methods are router.get(), router.post(), router.put(), and so on.
     /// </summary>
     /// <param name="method"></param>
     /// <param name="path"></param>
     /// <param name="middlewares"></param>
     // ReSharper disable once InconsistentNaming
-    public void METHOD(HttpMethod method, string path, List<MiddlewareCallback> middlewares)
+    private void METHOD(HttpMethod method, string path, MiddlewareCallback[] middlewares)
     {
         if (path == "/") path = "";
         if (MountPath == "/") MountPath = "";
@@ -152,75 +167,142 @@ internal class Router
         _routes.Add(route);
     }
 
-    public void head(string path, params MiddlewareCallback[] middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public void Head(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.HEAD, path, middleware.ToList() );
+        METHOD(HttpMethod.HEAD, path, middlewares);
     }
 
-    public void get(string path, params MiddlewareCallback[] middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public void Get(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.GET, path, middleware.ToList());
+        METHOD(HttpMethod.GET, path, middlewares);
     }
 
-    public void post(string path, params MiddlewareCallback[] middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public void Post(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.POST, path, middleware.ToList());
+        METHOD(HttpMethod.POST, path, middlewares);
     }
 
-    public void put(string path, params MiddlewareCallback[] middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public void Put(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.PUT, path, middleware.ToList());
+        METHOD(HttpMethod.PUT, path, middlewares);
     }
 
-    public void remove(string path, params MiddlewareCallback[] middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public void Delete(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.DELETE, path, middleware.ToList());
+        METHOD(HttpMethod.DELETE, path, middlewares);
     }
 
-    public void patch(string path, params MiddlewareCallback[] middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middleware"></param>
+    public void Patch(string path, params MiddlewareCallback[] middleware)
     {
-        METHOD(HttpMethod.PATCH, path, middleware.ToList() );
+        METHOD(HttpMethod.PATCH, path, middleware );
     }
 
-    public void any(MiddlewareCallback middleware)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="middleware"></param>
+    public void Any(MiddlewareCallback middleware)
     {
         _catchAll = middleware;
     }
 
-    public void use(ErrorCallback callback)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="callback"></param>
+    public void Use(ErrorCallback callback)
     {
         _errorHandler.Add(callback);
     }
 
-    public void use(List<ErrorCallback> callbacks)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="callbacks"></param>
+    public void Use(List<ErrorCallback> callbacks)
     {
         _errorHandler.AddRange(callbacks);
     }
 
-    public void use(MiddlewareCallback callback)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="callback"></param>
+    public void Use(MiddlewareCallback callback)
     {
         _middlewares.Add(callback);
     }
 
-    public void use(List<MiddlewareCallback> middlewares)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="middlewares"></param>
+    public void Use(MiddlewareCallback[] middlewares)
     {
         foreach (var middleware in middlewares)
             _middlewares.Add(middleware);
     }
 
-    public void use(string path, MiddlewareCallback middlewareCallback)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewareCallback"></param>
+    public void Use(string path, MiddlewareCallback middlewareCallback)
     {
     }
 
-    public void use(string mountPath, Router anotherRouter)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="mountPath"></param>
+    /// <param name="anotherRouter"></param>
+    public void Use(string mountPath, Router anotherRouter)
     {
         anotherRouter.MountPath = mountPath;
         anotherRouter._parent = this;
         _routers[anotherRouter.MountPath] = anotherRouter;
     }
 
-    public void use(string mountPath)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="mountPath"></param>
+    public void Use(string mountPath)
     {
         MountPath = mountPath;
     }
+
+    #endregion
+
 }

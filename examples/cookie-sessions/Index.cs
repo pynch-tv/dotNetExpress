@@ -2,18 +2,21 @@
 
 internal partial class Examples
 {
-    internal static void BodyParser()
+
+    internal static void HelloWorld()
     {
         var app = new Express();
         const int port = 8080;
 
-        //    app.use(Express.json());
+        app.get("/", (req, res, next) =>
+        {
+            res.send("Hello World");
+        });
 
-        app.Get("/", Express.Json());
-
-        app.Listen(port, () =>
+        app.listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });
     }
+
 }

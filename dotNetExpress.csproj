@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="examples\cookie-sessions\Index.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove=".gitignore" />
     <None Remove="README.md" />
   </ItemGroup>
@@ -16,6 +20,10 @@
     <Folder Include="examples\RouteSeparation\views\" />
     <Folder Include="examples\RouteSeparation\public\" />
     <Folder Include="examples\StaticFiles\public\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="examples\cookie-sessions\Index.cs" />
   </ItemGroup>
 
 </Project>
