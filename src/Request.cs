@@ -5,9 +5,16 @@ namespace dotNetExpress;
 
 public class Request
 {
-    private readonly Express _app;
-
     private readonly NameValueCollection _headers = new();
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="app"></param>
+    public Request(Express app)
+    {
+        this.app = app;
+    }
 
     #region Properties
 
@@ -16,7 +23,7 @@ public class Request
     /// res.app is identical to the req.app property in the request object.
     /// </summary>
     /// <returns></returns>
-    public Express app() => _app;
+    public Express app { get; private set; }
     
     /// <summary>
     /// The URL path on which a router instance was mounted.
@@ -117,7 +124,7 @@ public class Request
     /// <summary>
     /// This property holds a reference to the response object that relates to this request object.
     /// </summary>
-    public Response res => null;
+    public Response res;
 
     /// <summary>
     /// Contains the currently-matched route, a string.
@@ -246,9 +253,9 @@ public class Request
     /// The options parameter is an object that can have the following properties.
     /// </summary>
     /// <returns></returns>
-    public dotNetExpress.Range Range(int size, RangeOptions options = null)
+    public Range Range(int size, RangeOptions options = null)
     {
-        return new dotNetExpress.Range();
+        return new Range();
     }
 
     #endregion
@@ -263,9 +270,9 @@ public class Request
     /// <param name="headerLines"></param>
     /// <param name="request"></param>
     /// <returns></returns>
-    internal static bool TryParse(string[] headerLines, out Request request)
+    internal static bool TryParse(Express app, string[] headerLines, out Request request)
     {
-        request = new Request();
+        request = new Request(app);
 
         var requestLine = headerLines[0];
         var requestLineParts = requestLine.Split(' ');

@@ -81,9 +81,7 @@ internal class Utils
     /// </summary>
     private static void CompleteHttpRequest(Request req, Response res)
     {
-        var app = res.App();
-        app.Router().Dispatch(req, res);
-
+        res.App.Router().Dispatch(req, res);
         res._send();
     }
 
@@ -93,9 +91,10 @@ internal class Utils
     /// <param name="stateInfo"></param>
     internal static void ClientThread(object stateInfo)
     {
-        var aa = stateInfo as Parameters;
-        var tcpClient = aa.TcpClient;
-        var express = aa.Express;
+        if (stateInfo is not Parameters param) return;
+
+        var tcpClient = param.TcpClient;
+        var express = param.Express;
 
         // Read the http headers
         // Note: the body part is NOT read at this stage
@@ -111,17 +110,18 @@ internal class Utils
         }
 
         // Construct a Request object, based on the header info
-        if (!Request.TryParse(headerLines.ToArray(), out var req))
+        if (!Request.TryParse(express, headerLines.ToArray(), out var req))
         {
             // error - return
+            return;
         }
 
         // Make Response object
-        var res = new Response(express, tcpClient);
+        req.res = new Response(express, tcpClient);
 
         if (IsWebSocketUpgradeRequest(req))
         {
-            DoWebSocketUpgradeRequest(req, res);
+            DoWebSocketUpgradeRequest(req, req.res);
 
             // These socket are not disposed, but kept!
             lock (_webSockets)
@@ -131,7 +131,7 @@ internal class Utils
         }
         else
         {
-            CompleteHttpRequest(req, res);
+            CompleteHttpRequest(req, req.res);
         }
 
     }

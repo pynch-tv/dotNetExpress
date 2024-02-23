@@ -3,20 +3,23 @@
 internal partial class Examples
 {
 
-    internal static void HelloWorld()
+    internal static void CookieSession()
     {
         var app = new Express();
         const int port = 8080;
 
-        app.get("/", (req, res, next) =>
+        // add req.session cookie support
+        app.Use(cookieSession({ secret: 'manny is cool' }));
+
+        app.Get("/", (req, res, next) =>
         {
-            res.send("Hello World");
+            req.Session.count = (req.Session.count || 0) + 1
+            res.Send('viewed ' + req.Session.count + ' times\n')
         });
 
-        app.listen(port, () =>
+        app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });
     }
-
 }

@@ -44,7 +44,7 @@ public class Response
     /// res.app is identical to the req.app property in the request object.
     /// </summary>
     /// <returns></returns>
-    public Express App() => _app;
+    public Express App => _app;
 
 
     /// <summary>

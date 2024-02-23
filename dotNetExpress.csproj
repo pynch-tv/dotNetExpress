@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="examples\cookie-sessions\Index.cs" />
+    <Compile Remove="examples\Cookie-sessions\Index.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="examples\cookie-sessions\Index.cs" />
+    <None Include="examples\Cookie-sessions\Index.cs" />
   </ItemGroup>
 
 </Project>

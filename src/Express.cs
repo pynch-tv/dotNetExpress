@@ -355,8 +355,8 @@ public class Express
     /// </summary>
     public void Render(string name, NameValueCollection options)
     {
-        var view = this.Get("views");
-        var viewEngine = this.Get("view engine");
+        var view = Get("views");
+        var viewEngine = Get("view engine");
     }
 
     /// <summary>
