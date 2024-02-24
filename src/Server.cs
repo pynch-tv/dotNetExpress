@@ -1,28 +1,88 @@
-﻿using System.Net;
+﻿using dotNetExpress.Overrides;
+using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using dotNetExpress.Overrides;
 
 namespace dotNetExpress;
 
-internal class Utils
+internal class Parameters
 {
-    internal class Parameters
+    public Express Express { get; }
+    public TcpClient TcpClient { get; }
+    private Parameters(Express express, TcpClient tcpClient)
     {
-        public Express Express { get; }
-        public TcpClient TcpClient { get; }
-        private Parameters(Express express, TcpClient tcpClient)
-        {
-            Express = express;
-            TcpClient = tcpClient;
-        }
-
-        public static Parameters CreateInstance(Express express, TcpClient tcpClient)
-        {
-            return new Parameters(express, tcpClient);
-        }
+        Express = express;
+        TcpClient = tcpClient;
     }
+
+    public static Parameters CreateInstance(Express express, TcpClient tcpClient)
+    {
+        return new Parameters(express, tcpClient);
+    }
+}
+
+public class Server : TcpListener
+{
+    private Thread _tcpListenerThread;
+
+    private bool _running = false;
+
+    private Express _express;
+
+    private static readonly List<TcpClient> _webSockets = new();
+
+    public bool KeepAlive = false;
+
+    public int KeepAliveTimeout = 3 * 1000; // timing in ms
+
+    #region Constructor
+
+    public Server(int port) : base(port)
+    {
+    }
+
+    public Server(IPAddress localaddr, int port) : base(localaddr, port)
+    {
+    }
+
+    public Server(IPEndPoint localEP) : base(localEP)
+    {
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="express"></param>
+    public void Accept(Express express)
+    {
+        _express = express;
+
+    //    SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+
+        this.Start();
+
+        _tcpListenerThread = new Thread(() =>
+        {
+            _running = true;
+            while (_running)
+            {
+                try
+                {
+                    _ = ThreadPool.QueueUserWorkItem(ClientConnection!, Parameters.CreateInstance(_express, this.AcceptTcpClient()));
+                }
+                catch (Exception e)
+                {
+                    // ignored
+                }
+            }
+        });
+        _tcpListenerThread.Start();
+    }
+
+    #region WebSocket
 
     /// <summary>
     /// 
@@ -37,11 +97,6 @@ internal class Utils
 
         return Convert.ToBase64String(hashBytes);
     }
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    private static readonly List<TcpClient> _webSockets = new();
 
     /// <summary>
     /// 
@@ -74,11 +129,12 @@ internal class Utils
         //}
     }
 
+    #endregion
     /// <summary>
     /// 
     /// </summary>
     /// <param name="stateInfo"></param>
-    internal static void ClientThread(object stateInfo)
+    private void ClientConnection(object stateInfo)
     {
         try
         {
@@ -135,6 +191,12 @@ internal class Utils
             else
             {
                 req.Res.App.Router().Dispatch(req, req.Res);
+
+                // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
+                // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater
+                // flexibility than a TcpClient offers, consider using AcceptSocket.
+                if (!KeepAlive)
+                    tcpClient.Close();
             }
         }
         catch (HttpProtocolException e)

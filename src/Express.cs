@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Sockets;
 using System.Collections.Specialized;
 using dotNetExpress.Options;
 using dotNetExpress.Delegates;
@@ -7,7 +6,7 @@ using dotNetExpress.Middlewares;
 
 namespace dotNetExpress;
 
-public class Express : IDisposable
+public class Express 
 {
     #region properties
 
@@ -19,13 +18,12 @@ public class Express : IDisposable
 
     private readonly NameValueCollection _locals = new();
 
-    private TcpListener _listener;
+    internal Server Listener;
 
     private Thread _tcpListenerThread;
 
     private bool _running = false;
 
-    // To detect redundant calls
     private bool _disposed;
 
     #endregion
@@ -115,15 +113,12 @@ public class Express : IDisposable
 
         if (disposing)
         {
-            if (!_listener.Pending())
+            if (!Listener.Pending())
             {
-                _listener.Stop();
+                Listener.Stop();
                 _running = false;
             }
         }
-
-        // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-        // TODO: set large fields to null.
 
         _disposed = true;
     }
@@ -335,7 +330,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="port"></param>
     /// <param name="callback"></param>
-    public TcpListener Listen(int port, ListenCallback? callback = null)
+    public Server Listen(int port, ListenCallback? callback = null)
     {
         return Listen(port, string.Empty, null, callback);
     }
@@ -347,37 +342,18 @@ public class Express : IDisposable
     /// <param name="host"></param>
     /// <param name="backLog"></param>
     /// <param name="callback"></param>
-    public TcpListener Listen(int port, string? host = "", object? backLog = null, ListenCallback? callback = null)
+    public Server Listen(int port, string? host = "", object? backLog = null, ListenCallback? callback = null)
     {
         var maxThreadsCount = Environment.ProcessorCount * 4;
         ThreadPool.SetMaxThreads(maxThreadsCount, maxThreadsCount);
         ThreadPool.SetMinThreads(2, 2);
 
-        _listener = new TcpListener(IPAddress.Any, port);
-        _listener.Start();
-
-        _tcpListenerThread = new Thread(() =>
-        {
-            _running = true;
-            while (_running)
-            {
-                try
-                {
-                    _ = ThreadPool.QueueUserWorkItem(Utils.ClientThread!, Utils.Parameters.CreateInstance(this, _listener.AcceptTcpClient()));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                }
-            }
-
-            Console.WriteLine("done");
-        });
-        _tcpListenerThread.Start();
+        Listener = new Server(IPAddress.Any, port);
+        Listener.Accept(this);
 
         callback?.Invoke();
 
-        return _listener;
+        return Listener;
     }
 
     ///// <summary>

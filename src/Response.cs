@@ -365,10 +365,16 @@ public class Response
         headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
 
         // construct/append headers
-        _headers["connection"] = "close";
         if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
             _headers["X-Powered-By"] = "dotNetExpress";
         _headers["Date"] = DateTime.Now.ToUniversalTime().ToString("r");
+        if (_app.Listener.KeepAlive)
+        {
+            _headers["Connection"] = "keep-alive";
+            _headers["Keep-Alive"] = $"timeout={_app.Listener.KeepAliveTimeout / 1000}"; // Keep-Alive is in seconds
+        }
+        else
+            _headers["Connection"] = "close";
         _headers["content-length"] = data.Length.ToString();
 
         // stringy headers
@@ -387,12 +393,11 @@ public class Response
         _headersSent = true;
 
         // send content (if any)
-        if (data.Length > 0)
-        {
-            var body = encoding.GetBytes(data);
-            var bodyLength = encoding.GetByteCount(data);
-            _stream.Write(body, 0, bodyLength);
-        }
+        if (data.Length <= 0) return;
+
+        var body = encoding.GetBytes(data);
+        var bodyLength = encoding.GetByteCount(data);
+        _stream.Write(body, 0, bodyLength);
     }
 
     #endregion
