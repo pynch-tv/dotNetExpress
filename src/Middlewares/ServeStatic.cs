@@ -14,15 +14,20 @@ namespace dotNetExpress.Middlewares
             _options = options;
         }
 
+        public MiddlewareCallback Middleware()
+        {
+            return Serve;
+        }
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="req"></param>
         /// <param name="res"></param>
         /// <param name="next"></param>
-        public static void Serve(Request req, Response res, NextCallback? next = null)
+        public void Serve(Request req, Response res, NextCallback? next = null)
         {
-            Console.WriteLine("in ServeStatic");
+            Console.WriteLine($"in ServeStatic {_root}");
 
             next?.Invoke(null);
         }

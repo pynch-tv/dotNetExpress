@@ -65,7 +65,7 @@ public class Express
     {
         var serveStatic = new ServeStatic(root, options);
 
-        return ServeStatic.Serve;
+        return serveStatic.Middleware();
     }
 
     /// <summary>
