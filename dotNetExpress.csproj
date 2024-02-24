@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="examples\Cookie-sessions\Index.cs" />
-    <Compile Remove="examples\Static-Files\public\js\app.cs" />
+    <Compile Remove="examples\_CookieSessions\Index.cs" />
+    <Compile Remove="examples\_StaticFiles\public\js\app.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="examples\Cookie-sessions\Index.cs" />
-    <None Include="examples\Static-Files\public\js\app.cs" />
+    <None Include="examples\_CookieSessions\Index.cs" />
+    <None Include="examples\_StaticFiles\public\js\app.cs" />
   </ItemGroup>
 
 </Project>

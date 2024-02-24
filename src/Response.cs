@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using System.Xml;
 using dotNetExpress.Delegates;
+using dotNetExpress.Lookup;
 using dotNetExpress.Options;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -88,9 +89,10 @@ public class Response
     public void Attachment(string filename)
     {
         var ext = Path.GetExtension(filename);
+        var type = Mime.GetType(ext);
 
         Set("Content-Disposition", $"attachment; filename=\"{filename}\"");
-//        Set("Content-Type", ""); // TODO using ext
+        Type(type);
     }
 
     /// <summary>
@@ -130,11 +132,12 @@ public class Response
         options ??= new DownloadOptions();
         filename ??= Path.GetFileName(path);
         var ext = Path.GetExtension(path);
+        var type = Mime.GetType(ext);
 
         // set Content-Disposition when file is sent
         var headers = new NameValueCollection();
         headers["Content-Disposition"] = $"attachment; filename=\"{filename}\"";
-        //        Set("Content-Type", ""); // TODO using ext
+        headers["Content-Type"] = type;
 
         // merge user-provided headers
         options.Headers.Add(headers);
@@ -181,7 +184,7 @@ public class Response
     {
         var jsonString = JsonSerializer.Serialize(body);
 
-        Set("Content-Type", "application/json");
+        Type("application/json");
 
         Send(jsonString);
     }
@@ -365,7 +368,7 @@ public class Response
 
         var body = Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled);
 
-        this.Set("Content-Type", "text/plain; charset=utf-8");
+        Type("text/plain; charset=utf-8");
 
         End(body);
     }

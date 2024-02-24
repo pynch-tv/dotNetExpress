@@ -10,6 +10,7 @@ internal partial class Examples
         const int port = 8080;
 
         var __dirname = Directory.GetCurrentDirectory();
+        __dirname = "D:/";
 
         // express on its own has no notion
         // of a "file". The express.static()
@@ -25,13 +26,13 @@ internal partial class Examples
         // The mount-path "/static" is simply removed before
         // passing control to the express.static() middleware,
         // thus it serves the file correctly by ignoring "/static"
-        app.Use("/static", Express.Static(Path.Combine(__dirname, "public")));
+        //app.Use("/v1/static", Express.Static(Path.Combine(__dirname, "public")));
 
         // if for some reason you want to serve files from
         // several directories, you can use express.static()
         // multiple times! Here we're passing "./public/css",
         // this will allow "GET /style.css" instead of "GET /css/style.css":
-        app.Use(Express.Static(Path.Combine(__dirname, "public", "css")));
+        //app.Use(Express.Static(Path.Combine(__dirname, "public", "css")));
 
         app.Listen(port, () =>
         {
