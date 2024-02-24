@@ -110,8 +110,10 @@ public class Response
     /// <summary>
     /// Clears the cookie specified by name. For details about the options object, see res.cookie().
     /// </summary>
-    public void ClearCookie(string name, CookieOptions options = null)
+    public void ClearCookie(string name, CookieOptions? options = null)
     {
+        options ??= new CookieOptions();
+
         throw new NotImplementedException();
     }
 
