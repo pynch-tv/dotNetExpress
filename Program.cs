@@ -4,7 +4,7 @@ internal class Program
 {
     private static void Main(string[] _)
     {
-        Examples.StaticFiles();
+        Examples.SendFile();
 
         Console.ReadLine();
     }

@@ -7,15 +7,11 @@ using dotNetExpress.Middlewares;
 
 namespace dotNetExpress;
 
-public class Express
+public class Express : IDisposable
 {
     #region properties
 
     private readonly Router _router = new();
-
-    private TcpListener? _listener;
-
-//    private readonly List<MiddlewareCallback> _callbacks = new();
 
     private readonly Dictionary<string, RenderEngineCallback> _engines = new();
 
@@ -23,7 +19,114 @@ public class Express
 
     private readonly NameValueCollection _locals = new();
 
-//    public List<MiddlewareCallback> Middlewares() => _callbacks;
+    private TcpListener _listener;
+
+    private Thread _tcpListenerThread;
+
+    private bool _running = false;
+
+    // To detect redundant calls
+    private bool _disposed;
+
+    #endregion
+
+    #region Constructor
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    public Express()
+    {
+        // Enable case sensitivity. When enabled, "/Foo" and "/foo" are different routes.
+        // When disabled, "/Foo" and "/foo" are treated the same.
+        Set("case sensitive routing", "");
+
+        // Environment mode. Be sure to set to "production" in a production environment;
+        // see Production best practices: performance and reliability.	
+        Set("env", "development");
+
+        // Set the ETag response header. For possible values, see the etag options table.
+        Set("etag", "weak");
+
+        // Specifies the default JSONP callback name.	
+        Set("jsonp callback name", "callback");
+
+        // Enable escaping JSON responses from the res.json, res.jsonp, and res.send APIs.
+        // This will escape the characters <, >, and & as Unicode escape sequences in JSON.
+        // The purpose of this it to assist with mitigating certain types of persistent XSS
+        // attacks when clients sniff responses for HTML.
+        Set("json escape", "");
+
+        // The 'replacer' argument used by `JSON.stringify`.
+        Set("json replacer", "");
+
+        // The 'space' argument used by `JSON.stringify`. This is typically set to the
+        // number of spaces to use to indent prettified JSON.
+        Set("json spaces", "");
+
+        // Disable query parsing by setting the value to false, or set the query parser to use
+        // either “simple” or “extended” or a custom query string parsing function.
+        Set("query parser", "extended");
+
+        // Enable strict routing. When enabled, the router treats "/foo" and "/foo/" as different.
+        // Otherwise, the router treats "/foo" and "/foo/" as the same.
+        Set("strict routing", "");
+
+        // The number of dot-separated parts of the host to remove to access subdomain.	
+        Set("subdomain offset", "2");
+
+        // Indicates the app is behind a front-facing proxy, and to use the X-Forwarded-* headers
+        // to determine the connection and the IP address of the client. NOTE: X-Forwarded-* headers
+        // are easily spoofed and the detected IP addresses are unreliable.
+        //
+        // When enabled, Express attempts to determine the IP address of the client connected through
+        // the front-facing proxy, or series of proxies. The `req.ips` property, then contains an array
+        // of IP addresses the client is connected through. To enable it, use the values described in
+        // the trust proxy options table.
+        Set("trust proxy", "false");
+
+        // A directory or an array of directories for the application's views. If an array,
+        // the views are looked up in the order they occur in the array.	
+        Set("views", "");
+
+        // Enables view template compilation caching.
+        Set("view cache", "true");
+
+        // The default engine extension to use when omitted.
+        Set("view engine", "");
+
+        // Enables the "X-Powered-By: dotNetExpress" HTTP header.	
+        Set("x-powered-by", "true");
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            if (!_listener.Pending())
+            {
+                _listener.Stop();
+                _running = false;
+            }
+        }
+
+        // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+        // TODO: set large fields to null.
+
+        _disposed = true;
+    }
 
     #endregion
 
@@ -65,7 +168,7 @@ public class Express
     {
         var serveStatic = new ServeStatic(root, options);
 
-        return serveStatic.Middleware();
+        return serveStatic.Serve;
     }
 
     /// <summary>
@@ -109,7 +212,6 @@ public class Express
     {
         return BodyParser.ParseUrlencoded;
     }
-
 
     #endregion
 
@@ -233,9 +335,9 @@ public class Express
     /// </summary>
     /// <param name="port"></param>
     /// <param name="callback"></param>
-    public void Listen(int port, ListenCallback? callback = null)
+    public TcpListener Listen(int port, ListenCallback? callback = null)
     {
-        Listen(port, string.Empty, null, callback);
+        return Listen(port, string.Empty, null, callback);
     }
 
     /// <summary>
@@ -245,25 +347,37 @@ public class Express
     /// <param name="host"></param>
     /// <param name="backLog"></param>
     /// <param name="callback"></param>
-    public void Listen(int port, string? host = "", object? backLog = null, ListenCallback? callback = null)
+    public TcpListener Listen(int port, string? host = "", object? backLog = null, ListenCallback? callback = null)
     {
-        _ = Task.Run(() =>
+        var maxThreadsCount = Environment.ProcessorCount * 4;
+        ThreadPool.SetMaxThreads(maxThreadsCount, maxThreadsCount);
+        ThreadPool.SetMinThreads(2, 2);
+
+        _listener = new TcpListener(IPAddress.Any, port);
+        _listener.Start();
+
+        _tcpListenerThread = new Thread(() =>
         {
-            var maxThreadsCount = Environment.ProcessorCount * 4;
-            ThreadPool.SetMaxThreads(maxThreadsCount, maxThreadsCount);
-            ThreadPool.SetMinThreads(2, 2);
-
-            _listener = new TcpListener(IPAddress.Any, port);
-            _listener.Start();
-
-            callback?.Invoke();
-
-            while (true)
+            _running = true;
+            while (_running)
             {
-                _ = ThreadPool.QueueUserWorkItem(Utils.ClientThread!, Utils.Parameters.CreateInstance(this, _listener.AcceptTcpClient()));
+                try
+                {
+                    _ = ThreadPool.QueueUserWorkItem(Utils.ClientThread!, Utils.Parameters.CreateInstance(this, _listener.AcceptTcpClient()));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
 
+            Console.WriteLine("done");
         });
+        _tcpListenerThread.Start();
+
+        callback?.Invoke();
+
+        return _listener;
     }
 
     ///// <summary>

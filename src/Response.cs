@@ -1,9 +1,12 @@
 ﻿using System.Collections.Specialized;
 using System.Net;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Text.Unicode;
 using dotNetExpress.Delegates;
 using dotNetExpress.Options;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace dotNetExpress;
 
@@ -18,8 +21,6 @@ public class Response
     private HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
     private readonly Stream _stream;
-
-    private string _body = string.Empty;
 
     private bool _headersSent = false;
 
@@ -116,15 +117,6 @@ public class Response
     public void Download(string path, string filename = "", string options = "", NextCallback err = null)
     {
         throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Ends the response process. This method actually comes from Node core, specifically
-    /// the response.end() method of http.ServerResponse.
-    /// </summary>
-    public void End(string data = "", string encoding = "")
-    {
-        throw new NotSupportedException();
     }
 
     /// <summary>
@@ -231,13 +223,17 @@ public class Response
     /// <summary>
     /// Sends the HTTP response.
     ///
-    /// The body parameter can be a Buffer object, a String, an object, Boolean, or an Array.For example:
+    /// The body parameter can be a Buffer object, a String, an object, Boolean, or an Array.
+    ///
+    /// This method performs many useful tasks for simple non-streaming responses: For example,
+    /// it automatically assigns the Content-Length HTTP response header field (unless previously
+    /// defined) and provides automatic HEAD and HTTP cache freshness support.
     /// </summary>
     /// <param name="body"></param>
     /// <returns></returns>
-    public void Send(string body = "")
+    public void Send(string? body = null)
     {
-        _body = body;
+        throw new NotSupportedException();
     }
 
     public void Send(object body)
@@ -254,12 +250,36 @@ public class Response
     /// Transfers the file at the given path. Sets the Content-Type response HTTP header
     /// field based on the filename’s extension. Unless the root option is set in the options
     /// object, path must be an absolute path to the file.
+    /// 
+    /// TODO: The method invokes the callback function fn(err) when the transfer is complete or
+    /// when an error occurs. If the callback function is specified and an error occurs,
+    /// the callback function must explicitly handle the response process either by ending
+    /// the request-response cycle, or by passing control to the next route.
     /// </summary>
-    /// <param name="path"></param>
-    /// <exception cref="NotSupportedException"></exception>
-    public void SendFile(string path)
+    /// <param name="filename"></param>
+    /// <param name="options"></param>
+    public void SendFile(string filename, SendFileOptions? options = null) // TODO callback
     {
-        throw new NotSupportedException();
+        options ??= new SendFileOptions();
+
+        if (options.DotFiles.Equals("deny", StringComparison.OrdinalIgnoreCase) && filename.StartsWith("."))
+        {
+            // TODO call error handler
+        }
+
+        var path = Path.Combine(options.Root, filename);
+        if (!File.Exists(path))
+        {
+            // TODO call error handler
+        }
+
+        // Headers
+        _headers.Add(options.Headers);
+        if (options.LastModified)
+            _headers.Add(new NameValueCollection() { { "", "" } });
+
+    //    var stream = File.OpenRead(path);
+    //    stream.CopyTo(this._stream);
     }
 
     /// <summary>
@@ -273,7 +293,11 @@ public class Response
     {
         _httpStatusCode = code;
 
-        throw new NotSupportedException();
+        var body = Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled);
+
+        this.Set("Content-Type", "text/plain; charset=utf-8");
+
+        End(body);
     }
 
     /// <summary>
@@ -325,38 +349,48 @@ public class Response
 
     #region Internal methods
     /// <summary>
-    /// 
+    /// Ends the response process.
+    ///
+    /// Use to quickly end the response without any data. If you need to respond with data,
+    /// instead use methods such as res.send() and res.json().
     /// </summary>
-    internal void _send()
+    internal void End(string? data = null, Encoding? encoding = null)
     {
-        // _client must still be alive!
-        
-        // finalize header content, based on content
-        if (!string.IsNullOrEmpty(_body))
-            _headers["content-length"] = _body.Length.ToString();
-        _headers["connection"] = "close";
+        encoding ??= Encoding.UTF8;
+        data ??= string.Empty;
 
-        // Build string in memory and write out once
         var headerContent = new StringBuilder();
-        headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
-        if (!string.IsNullOrEmpty(_body))
-            _headers["content-length"] = _body.Length.ToString();
 
+        // First line of HTTP
+        headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
+
+        // construct/append headers
+        _headers["connection"] = "close";
+        if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
+            _headers["X-Powered-By"] = "dotNetExpress";
+        _headers["Date"] = DateTime.Now.ToUniversalTime().ToString("r");
+        _headers["content-length"] = data.Length.ToString();
+
+        // stringy headers
         foreach (string key in _headers)
             headerContent.AppendLine($"{key}: {_headers[key]}");
+        // last header line is empty
         headerContent.AppendLine();
 
         // Prepare to send it out
         var headerString = headerContent.ToString();
-        var header = Encoding.UTF8.GetBytes(headerString);
-        var headerLength = Encoding.UTF8.GetByteCount(headerString);
+        var header = encoding.GetBytes(headerString);
+        var headerLength = encoding.GetByteCount(headerString);
 
-        var body = Encoding.UTF8.GetBytes(_body);
-        var bodyLength = Encoding.UTF8.GetByteCount(_body);
+        // send headers
+        _stream.Write(header, 0, headerLength);
+        _headersSent = true;
 
+        // send content (if any)
+        if (data.Length > 0)
         {
-            _stream.Write(header, 0, headerLength);
-            _headersSent = true;
+            var body = encoding.GetBytes(data);
+            var bodyLength = encoding.GetByteCount(data);
             _stream.Write(body, 0, bodyLength);
         }
     }

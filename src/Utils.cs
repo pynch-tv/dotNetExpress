@@ -66,7 +66,7 @@ internal class Utils
         res.Set("Connection", "Upgrade");
         res.Set("Sec-WebSocket-Accept", HashKey(key));
 
-        res._send();
+        res.End();
 
         //lock (_webSockets)
         //{
@@ -135,7 +135,6 @@ internal class Utils
             else
             {
                 req.Res.App.Router().Dispatch(req, req.Res);
-                req.Res._send();
             }
         }
         catch (HttpProtocolException e)
