@@ -7,8 +7,16 @@ public static class Mime
 
     public static string GetType(string ext)
     {
-        var type = _mimes[ext];
+        ext = ext.TrimStart('.');
 
-        return type[0];
+        foreach (var pair in _mimes)
+        {
+            if (pair.Value.Contains(ext))
+            {
+                return pair.Key;
+            }
+        }
+
+        return string.Empty;
     }
 }
