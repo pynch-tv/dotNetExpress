@@ -22,17 +22,17 @@ internal partial class Examples
             return auth;
         }
 
-        private static void auth(Request req, Response res, NextCallback next = null)
+        private static void auth(Request req, Response res, NextCallback? next = null)
         {
             var basicAuth = req.Get("authorization");
 
             if (!string.IsNullOrEmpty(basicAuth))
             {
-
+                var basic = "Basic "; // CHECK nog een keer
                 var authenticated = false;
                 if (basicAuth.StartsWith("Basic"))
                 {
-                    basicAuth = basicAuth.Substring(6);
+                    basicAuth = basicAuth.Substring(6); 
                     basicAuth.Trim();
 
                     foreach (string name in _users)
@@ -59,7 +59,7 @@ internal partial class Examples
                 }
             }
 
-            next();
+            next?.Invoke(null);
         }
     }
 

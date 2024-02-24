@@ -77,74 +77,74 @@ internal class Utils
     /// <summary>
     /// 
     /// </summary>
-    private static void CompleteHttpRequest(Request req, Response res)
-    {
-        res.App.Router().Dispatch(req, res);
-        res._send();
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
     /// <param name="stateInfo"></param>
     internal static void ClientThread(object stateInfo)
     {
-        if (stateInfo is not Parameters param) return;
-
-        var tcpClient = param.TcpClient;
-        var stream = tcpClient.GetStream();
-        var express = param.Express;
-
-        // Read the http headers
-        // Note: the body part is NOT read at this stage
-        var headerLines = new List<string>();
-        var streamReader = new MessageBodyStreamReader(stream);
+        try
         {
-            while (true)
+            if (stateInfo is not Parameters param) return;
+
+            var tcpClient = param.TcpClient;
+            var stream = tcpClient.GetStream();
+            var express = param.Express;
+
+            // Read the http headers
+            // Note: the body part is NOT read at this stage
+            var headerLines = new List<string>();
+            var streamReader = new MessageBodyStreamReader(stream);
             {
-                var line = streamReader.ReadLine();
-                if (string.IsNullOrEmpty(line)) 
-                    break;
-                headerLines.Add(line);
+                while (true)
+                {
+                    var line = streamReader.ReadLine();
+                    if (string.IsNullOrEmpty(line))
+                        break;
+                    headerLines.Add(line);
+                }
+            }
+
+            // Construct a Request object, based on the header info
+            if (!Request.TryParse(express, headerLines.ToArray(), out var req))
+                throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
+
+            // get the IP from the remove endPoint
+            if (tcpClient.Client.RemoteEndPoint is IPEndPoint ipEndPoint)
+                req.Ip = ipEndPoint.Address;
+
+            // Make Response object
+            req.Res = new Response(express, stream);
+
+            if (!string.IsNullOrEmpty(req.Get("content-length")))
+            {
+                var contentLength = int.Parse(req.Get("content-length"));
+
+                // When a content-length is available, a stream is provided in Request
+                req.StreamReader = streamReader;
+                req.StreamReader.SetLength(contentLength);
+            }
+
+            if (IsWebSocketUpgradeRequest(req))
+            {
+                DoWebSocketUpgradeRequest(req, req.Res);
+
+                // These socket are not disposed, but kept!
+                lock (_webSockets)
+                {
+                    _webSockets.Add(tcpClient);
+                }
+            }
+            else
+            {
+                req.Res.App.Router().Dispatch(req, req.Res);
+                req.Res._send();
             }
         }
-
-        // Construct a Request object, based on the header info
-        if (!Request.TryParse(express, headerLines.ToArray(), out var req))
+        catch (HttpProtocolException e)
         {
-            // error - return
-            return;
+
         }
-
-        // get the IP from the remove endPoint
-        if (tcpClient.Client.RemoteEndPoint is IPEndPoint ipEndPoint)
-            req.Ip = ipEndPoint.Address;
-
-        // Make Response object
-        req.Res = new Response(express, stream);
-
-        if (!string.IsNullOrEmpty(req.Get("content-length")))
+        catch (Exception e)
         {
-            var contentLength = int.Parse(req.Get("content-length"));
 
-            // When a content-length is available, a stream is provided in Request
-            req.StreamReader = streamReader;
-            req.StreamReader.SetLength(contentLength);
-        }
-        
-        if (IsWebSocketUpgradeRequest(req))
-        {
-            DoWebSocketUpgradeRequest(req, req.Res);
-
-            // These socket are not disposed, but kept!
-            lock (_webSockets)
-            {
-                _webSockets.Add(tcpClient);
-            }
-        }
-        else
-        {
-            CompleteHttpRequest(req, req.Res);
         }
     }
 }

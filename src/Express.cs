@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Collections.Specialized;
-using System.Text;
 using dotNetExpress.Options;
 using dotNetExpress.Delegates;
+using dotNetExpress.Middlewares;
 
 namespace dotNetExpress;
 
@@ -15,9 +15,7 @@ public class Express
 
     private TcpListener? _listener;
 
-    private readonly List<MiddlewareCallback> _callbacks = new();
-
-    private static MiddlewareCallback _static = null;
+//    private readonly List<MiddlewareCallback> _callbacks = new();
 
     private readonly Dictionary<string, RenderEngineCallback> _engines = new();
 
@@ -25,7 +23,7 @@ public class Express
 
     private readonly NameValueCollection _locals = new();
 
-    public List<MiddlewareCallback> Middlewares() => _callbacks;
+//    public List<MiddlewareCallback> Middlewares() => _callbacks;
 
     #endregion
 
@@ -44,12 +42,12 @@ public class Express
     /// <exception cref="NotImplementedException"></exception>
     public static MiddlewareCallback Json()
     {
-        return ParseJson;
+        return BodyParser.ParseJson;
     }
 
     public static MiddlewareCallback Json(jsonOptions? options)
     {
-        return ParseJson;
+        return BodyParser.ParseJson;
     }
 
     /// <summary>
@@ -65,12 +63,15 @@ public class Express
     /// <returns></returns>
     public static MiddlewareCallback Static(string root, StaticOptions? options = null)
     {
-        return _static;
+        var serveStatic = new ServeStatic(root, options);
+
+        return ServeStatic.Serve;
     }
 
     /// <summary>
     /// Creates a new router object.
     /// </summary>
+    /// <param name="options"></param>
     /// <returns></returns>
     internal Router Router(RouterOptions? options = null)
     {
@@ -86,10 +87,11 @@ public class Express
     /// A new body Buffer containing the parsed data is populated on the request object after the middleware(i.e.req.body), or an
     /// empty object ({}) if there was no body to parse, the Content-Type was not matched, or an error occurred.
     /// </summary>
+    /// <param name="options"></param>
     /// <returns></returns>
     public static MiddlewareCallback Raw(jsonOptions? options = null)
     {
-        return ParseRaw;
+        return BodyParser.ParseRaw;
     }
 
     /// <summary>
@@ -105,89 +107,9 @@ public class Express
     /// <returns></returns>
     public static MiddlewareCallback Urlencoded()
     {
-        return ParseUrlencoded;
+        return BodyParser.ParseUrlencoded;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="req"></param>
-    /// <param name="res"></param>
-    /// <param name="next"></param>
-    private static void ParseJson(Request req, Response res, NextCallback? next = null)
-    {
-        if (req.Body is { Length: > 0 })
-        {   //  already parsed
-            next?.Invoke(null);
-            return;
-        }
-
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
-        {
-            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
-
-            var sb = new byte[contentLength];
-            req.StreamReader.ReadExactly(sb, 0, sb.Length);
-
-            req.Body = Encoding.UTF8.GetString(sb);
-        }
-
-        next?.Invoke(null);
-    }
-
-    private static void ParseText(Request req, Response res, NextCallback? next = null)
-    {
-        if (req.Body is { Length: > 0 })
-        {
-            //  already parsed
-            next?.Invoke(null);
-            return;
-        }
-
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
-        {
-            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
-        }
-
-        next?.Invoke(null);
-    }
-
-    private static void ParseRaw(Request req, Response res, NextCallback? next = null)
-    {
-        if (req.Body is { Length: > 0 })
-        {
-            //  already parsed
-            next?.Invoke(null);
-            return;
-        }
-
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
-        {
-            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
-
-            var sb = new byte[contentLength];
-            var bytesRead = req.StreamReader.Read(sb, 0, sb.Length);
-        }
-
-        next?.Invoke(null);
-    }
-
-    private static void ParseUrlencoded(Request req, Response res, NextCallback? next = null)
-    {
-        if (req.Body is { Length: > 0 })
-        {
-            //  already parsed
-            next?.Invoke(null);
-            return;
-        }
-
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
-        {
-            var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
-        }
-
-        next?.Invoke(null);
-    }
 
     #endregion
 
@@ -344,18 +266,18 @@ public class Express
         });
     }
 
-    /// <summary>
-    /// Routes an HTTP request, where METHOD is the HTTP method of the request, such as GET, PUT, POST,
-    /// and so on, in lowercase. Thus, the actual methods are app.get(), app.post(), app.put(), and so on.
-    /// See Routing methods below for the complete list.
-    /// </summary>
-    /// <param name="method"></param>
-    /// <param name="path"></param>
-    /// <param name="middlewares"></param>
-    private void METHOD(HttpMethod method, string path, List<MiddlewareCallback> middlewares)
-    {
-        throw new NotImplementedException();
-    }
+    ///// <summary>
+    ///// Routes an HTTP request, where METHOD is the HTTP method of the request, such as GET, PUT, POST,
+    ///// and so on. Thus, the actual methods are app.get(), app.post(), app.put(), and so on.
+    ///// See Routing methods below for the complete list.
+    ///// </summary>
+    ///// <param name="method"></param>
+    ///// <param name="path"></param>
+    ///// <param name="middlewares"></param>
+    //private void METHOD(HttpMethod method, string path, List<MiddlewareCallback> middlewares)
+    //{
+    //    throw new NotImplementedException();
+    //}
 
     /// <summary>
     /// Add callback triggers to route parameters, where name is the name of the parameter or an array
@@ -460,20 +382,20 @@ public class Express
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="mountPath"></param>
-    public void Use(string mountPath)
+    /// <param name="path"></param>
+    public void Use(string path)
     {
-        _router.MountPath = mountPath;
+        _router.MountPath = path;
     }
 
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="mountPath"></param>
+    /// <param name="path"></param>
     /// <param name="router"></param>
-    public void Use(string mountPath, Router router)
+    public void Use(string path, Router router)
     {
-        _router.Use(mountPath, router);
+        _router.Use(path, router);
     }
 
     /// <summary>

@@ -244,6 +244,7 @@ public class Request
     /// <param name="name"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
+    [Obsolete("Use either req.params, req.body or req.query, as applicable.")]
     public string Param(string name, string defaultValue)
     {
         return "";
@@ -257,7 +258,7 @@ public class Request
     /// The options parameter is an object that can have the following properties.
     /// </summary>
     /// <returns></returns>
-    public Range Range(int size, RangeOptions options = null)
+    public Range Range(int size, RangeOptions? options = null)
     {
         return new Range();
     }
@@ -273,7 +274,6 @@ public class Request
     /// </summary>
     /// <param name="app"></param>
     /// <param name="headerLines"></param>
-    /// <param name="client"></param>
     /// <param name="request"></param>
     /// <returns></returns>
     internal static bool TryParse(Express app, string[] headerLines, out Request request)
@@ -284,6 +284,8 @@ public class Request
         #region First line : Method url Protocol
         var requestLine = headerLines[0];
         var requestLineParts = requestLine.Split(' ');
+        if (requestLineParts.Length != 3)
+            throw new HttpProtocolException(500, "First line must consists of 3 parts", new ProtocolViolationException("First line must consists of 3 parts"));
 
         request.Method = HttpMethod.Parse(requestLineParts[0]);
         request.OriginalUrl = requestLineParts[1];
@@ -306,7 +308,9 @@ public class Request
         {
             var headerLine = headerLines[i];
             var headerPair = headerLine.Split(":", 2, StringSplitOptions.TrimEntries);
-            if (headerPair.Length != 2) continue; // basic checking
+            if (headerPair.Length != 2)
+                throw new HttpProtocolException(500, "HeaderLine must consist of 2 parts", new ProtocolViolationException("HeaderLine must consist of 2 parts"));
+
             // header in case insensitive (see 
             request._headers.Add(headerPair[0].ToLower(), headerPair[1]);
         }
