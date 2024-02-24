@@ -1,6 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.Net;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Unicode;
@@ -113,10 +114,26 @@ public class Response
     /// parameter is derived from the path argument, but can be overridden with the
     /// filename parameter. If path is relative, then it will be based on the current
     /// working directory of the process or the root option, if provided.
+    ///
+    /// The method invokes the callback function fn(err) when the transfer is complete
+    /// or when an error occurs. If the callback function is specified and an error
+    /// occurs, the callback function must explicitly handle the response process either
+    /// by ending the request-response cycle, or by passing control to the next route.
     /// </summary>
-    public void Download(string path, string filename = "", string options = "", NextCallback err = null)
+    public void Download(string path, string? filename = null, DownloadOptions? options = null) // todo: error callback
     {
-        throw new NotImplementedException();
+        options ??= new DownloadOptions();
+
+        // set Content-Disposition when file is sent
+        var headers = new NameValueCollection();
+        headers["Content-Disposition"] = $"attachment; filename=\"{path}\"";
+
+        // merge user-provided headers
+        options.Headers.Add(headers);
+
+        var opts = SendFileOptions.From(options);
+
+        this.SendFile(path, opts);
     }
 
     /// <summary>
@@ -233,7 +250,7 @@ public class Response
     /// <returns></returns>
     public void Send(string? body = null)
     {
-        throw new NotSupportedException();
+        End(body);
     }
 
     public void Send(object body)
@@ -273,13 +290,54 @@ public class Response
             // TODO call error handler
         }
 
+        var file = new FileInfo(path);
+
         // Headers
         _headers.Add(options.Headers);
         if (options.LastModified)
-            _headers.Add(new NameValueCollection() { { "", "" } });
+            _headers.Add(new NameValueCollection() { { "Last-Modified", file.LastWriteTime.ToUniversalTime().ToString("r") } });
 
-    //    var stream = File.OpenRead(path);
-    //    stream.CopyTo(this._stream);
+        var encoding = Encoding.UTF8;
+
+        var headerContent = new StringBuilder();
+
+        // First line of HTTP
+        headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
+
+        // construct/append headers
+        if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
+            _headers["X-Powered-By"] = "dotNetExpress";
+        _headers["Date"] = DateTime.Now.ToUniversalTime().ToString("r");
+        if (_app.Listener.KeepAlive)
+        {
+            _headers["Connection"] = "keep-alive";
+            _headers["Keep-Alive"] = $"timeout={_app.Listener.KeepAliveTimeout}"; // Keep-Alive is in seconds
+        }
+        else
+            _headers["Connection"] = "close";
+        _headers["content-length"] = file.Length.ToString();
+
+        // stringy headers
+        foreach (string key in _headers)
+            headerContent.AppendLine($"{key}: {_headers[key]}");
+        // last header line is empty
+        headerContent.AppendLine();
+
+        // Prepare to send it out
+        var headerString = headerContent.ToString();
+        var header = encoding.GetBytes(headerString);
+        var headerLength = encoding.GetByteCount(headerString);
+
+        // send headers
+        _stream.Write(header, 0, headerLength);
+        _headersSent = true;
+
+        // send content (if any)
+        if (file.Length <= 0) return;
+
+        var fileStream = File.OpenRead(path);
+        fileStream.CopyTo(this._stream);
+        fileStream.Close();
     }
 
     /// <summary>
@@ -371,7 +429,7 @@ public class Response
         if (_app.Listener.KeepAlive)
         {
             _headers["Connection"] = "keep-alive";
-            _headers["Keep-Alive"] = $"timeout={_app.Listener.KeepAliveTimeout / 1000}"; // Keep-Alive is in seconds
+            _headers["Keep-Alive"] = $"timeout={_app.Listener.KeepAliveTimeout}"; // Keep-Alive is in seconds
         }
         else
             _headers["Connection"] = "close";

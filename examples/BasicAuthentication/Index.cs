@@ -13,6 +13,7 @@ internal partial class Examples
 
         private static bool _challenge;
 
+        private const string Basic = "Basic ";
 
         public static MiddlewareCallback basicAuth(NameValueCollection users, bool challenge = true)
         {
@@ -28,11 +29,10 @@ internal partial class Examples
 
             if (!string.IsNullOrEmpty(basicAuth))
             {
-                var basic = "Basic "; // CHECK nog een keer
                 var authenticated = false;
-                if (basicAuth.StartsWith("Basic"))
+                if (basicAuth.StartsWith(Basic))
                 {
-                    basicAuth = basicAuth.Substring(6); 
+                    basicAuth = basicAuth[Basic.Length..]; 
                     basicAuth.Trim();
 
                     foreach (string name in _users)
@@ -63,7 +63,7 @@ internal partial class Examples
         }
     }
 
-    private static void BasicAuthentication()
+    internal static void BasicAuthentication()
     {
         var app = new Express();
         const int port = 8080;
@@ -71,7 +71,7 @@ internal partial class Examples
         NameValueCollection users = new() { { "admin", "supersecret123" } };
         app.Use(BasicAuth.basicAuth(users));
 
-        app.Get("/", (req, res, next) =>
+        app.Get("/v1", (req, res, next) =>
         {
             res.Send("Hello World");
         });

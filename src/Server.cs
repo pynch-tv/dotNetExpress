@@ -34,7 +34,7 @@ public class Server : TcpListener
 
     public bool KeepAlive = false;
 
-    public int KeepAliveTimeout = 3 * 1000; // timing in ms
+    public int KeepAliveTimeout = 3; // timing in ms
 
     #region Constructor
 
@@ -60,7 +60,14 @@ public class Server : TcpListener
     {
         _express = express;
 
-    //    SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+        var listenerSocket = this.Server;
+        //var lingerOption = new LingerOption(true, 10);
+        //listenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, lingerOption);
+
+        //listenerSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, KeepAliveTimeout);
+        //listenerSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 5);
+        //listenerSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 5); //note this doesnt work on some windows versions
+        //listenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, KeepAlive);
 
         this.Start();
 

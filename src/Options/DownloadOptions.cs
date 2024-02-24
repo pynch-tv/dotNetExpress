@@ -2,17 +2,12 @@
 
 namespace dotNetExpress.Options;
 
-public class SendFileOptions 
+public class DownloadOptions
 {
     /// <summary>
     /// Set the max-age property of the Cache-Control header in milliseconds or a string in ms format.	
     /// </summary>
     public int MaxAge = 0;
-
-    /// <summary>
-    /// Root directory for relative filenames.
-    /// </summary>
-    public string Root = string.Empty;
 
     /// <summary>
     /// Set the Last-Modified header to the last modified date of the file on the OS.
@@ -44,25 +39,4 @@ public class SendFileOptions
     /// Enable or disable the immutable directive in the Cache-Control response header. If enabled, the maxAge option should also be specified to enable caching. The immutable directive will prevent supported clients from making conditional requests during the life of the maxAge option to check if the file has changed.	
     /// </summary>
     public bool Immutable = false;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="downloadOptions"></param>
-    /// <returns></returns>
-    public static SendFileOptions From(DownloadOptions downloadOptions)
-    {
-        var sendFileOptions = new SendFileOptions
-        {
-            MaxAge = downloadOptions.MaxAge,
-            LastModified = downloadOptions.LastModified,
-            Headers = downloadOptions.Headers,
-            DotFiles = downloadOptions.DotFiles,
-            AcceptRanges = downloadOptions.AcceptRanges,
-            CacheControl = downloadOptions.CacheControl,
-            Immutable = downloadOptions.Immutable
-        };
-
-        return sendFileOptions;
-    }
 }
