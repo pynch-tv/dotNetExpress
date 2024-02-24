@@ -1,10 +1,13 @@
 ﻿using System.Collections.Specialized;
+using System.IO;
 using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Text.Unicode;
+using System.Xml;
 using dotNetExpress.Delegates;
 using dotNetExpress.Options;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -23,8 +26,6 @@ public class Response
 
     private readonly Stream _stream;
 
-    private bool _headersSent = false;
-
     private readonly Express _app;
 
     /// <summary>
@@ -35,7 +36,7 @@ public class Response
     internal Response(Express app, Stream stream)
     {
         _app = app;
-        _headersSent = false;
+        HeadersSent = false;
         _stream = stream;
     }
 
@@ -53,7 +54,7 @@ public class Response
     /// Boolean property that indicates if the app sent HTTP headers for the response.
     /// </summary>
     /// <returns></returns>
-    public bool HeadersSent() => _headersSent;
+    public bool HeadersSent;
 
     /// <summary>
     /// Use this property to set variables accessible in templates rendered with res.render.
@@ -86,7 +87,10 @@ public class Response
     /// <param name="filename"></param>
     public void Attachment(string filename)
     {
-        throw new NotImplementedException();
+        var ext = Path.GetExtension(filename);
+
+        Set("Content-Disposition", $"attachment; filename=\"{filename}\"");
+//        Set("Content-Type", ""); // TODO using ext
     }
 
     /// <summary>
@@ -95,6 +99,7 @@ public class Response
     /// <param name="name"></param>
     /// <param name="value"></param>
     /// <exception cref="NotImplementedException"></exception>
+    /// <exception cref="NotImplementedException"></exception>Set
     public void Cookie(string name, string value, CookieOptions options = null)
     {
         throw new NotImplementedException();
@@ -115,7 +120,7 @@ public class Response
     /// filename parameter. If path is relative, then it will be based on the current
     /// working directory of the process or the root option, if provided.
     ///
-    /// The method invokes the callback function fn(err) when the transfer is complete
+    /// TODO: The method invokes the callback function fn(err) when the transfer is complete
     /// or when an error occurs. If the callback function is specified and an error
     /// occurs, the callback function must explicitly handle the response process either
     /// by ending the request-response cycle, or by passing control to the next route.
@@ -123,10 +128,13 @@ public class Response
     public void Download(string path, string? filename = null, DownloadOptions? options = null) // todo: error callback
     {
         options ??= new DownloadOptions();
+        filename ??= Path.GetFileName(path);
+        var ext = Path.GetExtension(path);
 
         // set Content-Disposition when file is sent
         var headers = new NameValueCollection();
-        headers["Content-Disposition"] = $"attachment; filename=\"{path}\"";
+        headers["Content-Disposition"] = $"attachment; filename=\"{filename}\"";
+        //        Set("Content-Type", ""); // TODO using ext
 
         // merge user-provided headers
         options.Headers.Add(headers);
@@ -163,7 +171,7 @@ public class Response
 
     /// <summary>
     /// Sends a JSON response. This method sends a response (with the correct content-type)
-    /// that is the parameter converted to a JSON string using JSON.stringify().
+    /// that is the parameter converted to a JSON string.
     ///
     /// The parameter can be any JSON type, including object, array, string, Boolean, number,
     /// or null, and you can also use it to convert other values to JSON.
@@ -171,7 +179,11 @@ public class Response
     /// <param name="body"></param>
     public void Json(dynamic body)
     {
-        throw new NotSupportedException();
+        var jsonString = JsonSerializer.Serialize(body);
+
+        Set("Content-Type", "application/json");
+
+        Send(jsonString);
     }
 
     /// <summary>
@@ -330,7 +342,7 @@ public class Response
 
         // send headers
         _stream.Write(header, 0, headerLength);
-        _headersSent = true;
+        HeadersSent = true;
 
         // send content (if any)
         if (file.Length <= 0) return;
@@ -406,6 +418,7 @@ public class Response
     #endregion
 
     #region Internal methods
+
     /// <summary>
     /// Ends the response process.
     ///
@@ -448,7 +461,7 @@ public class Response
 
         // send headers
         _stream.Write(header, 0, headerLength);
-        _headersSent = true;
+        HeadersSent = true;
 
         // send content (if any)
         if (data.Length <= 0) return;
