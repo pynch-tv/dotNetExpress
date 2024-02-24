@@ -175,7 +175,7 @@ public class Router
     /// <param name="middlewares"></param>
     public void Head(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.HEAD, path, middlewares);
+        METHOD(HttpMethod.Head, path, middlewares);
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public class Router
     /// <param name="middlewares"></param>
     public void Get(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.GET, path, middlewares);
+        METHOD(HttpMethod.Get, path, middlewares);
     }
 
     /// <summary>
@@ -195,7 +195,7 @@ public class Router
     /// <param name="middlewares"></param>
     public void Post(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.POST, path, middlewares);
+        METHOD(HttpMethod.Post, path, middlewares);
     }
 
     /// <summary>
@@ -205,7 +205,7 @@ public class Router
     /// <param name="middlewares"></param>
     public void Put(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.PUT, path, middlewares);
+        METHOD(HttpMethod.Put, path, middlewares);
     }
 
     /// <summary>
@@ -215,7 +215,7 @@ public class Router
     /// <param name="middlewares"></param>
     public void Delete(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.DELETE, path, middlewares);
+        METHOD(HttpMethod.Delete, path, middlewares);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public class Router
     /// <param name="middleware"></param>
     public void Patch(string path, params MiddlewareCallback[] middleware)
     {
-        METHOD(HttpMethod.PATCH, path, middleware );
+        METHOD(HttpMethod.Patch, path, middleware );
     }
 
     /// <summary>

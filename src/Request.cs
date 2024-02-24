@@ -285,9 +285,7 @@ public class Request
         var requestLine = headerLines[0];
         var requestLineParts = requestLine.Split(' ');
 
-        if (!Enum.TryParse(requestLineParts[0], out request.Method))
-            return false;
-
+        request.Method = HttpMethod.Parse(requestLineParts[0]);
         request.OriginalUrl = requestLineParts[1];
         var idx = request.OriginalUrl.LastIndexOf('?');
         if (idx > -1)

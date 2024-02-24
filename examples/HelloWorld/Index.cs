@@ -15,9 +15,9 @@ namespace dotNetExpress.examples
                 res.Send("Hello World");
             });
 
-            app.All("*", (req, res, next) => {
-                res.Redirect("http://www.mysite.com/");
-            });
+            //app.All("*", (req, res, next) => {
+            //    res.Redirect("http://www.mysite.com/");
+            //});
 
             app.Listen(port, () =>
             {
