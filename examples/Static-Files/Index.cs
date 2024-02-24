@@ -1,4 +1,6 @@
-﻿namespace dotNetExpress.examples;
+﻿using dotNetExpress.Options;
+
+namespace dotNetExpress.examples;
 
 internal partial class Examples
 {

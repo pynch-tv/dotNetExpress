@@ -1,4 +1,6 @@
-﻿namespace dotNetExpress;
+﻿using dotNetExpress.Delegates;
+
+namespace dotNetExpress;
 
 internal class Route
 {

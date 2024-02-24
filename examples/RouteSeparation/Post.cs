@@ -1,6 +1,8 @@
-﻿namespace dotNetExpress.examples;
+﻿using dotNetExpress.Delegates;
 
-    internal class Post
+namespace dotNetExpress.examples;
+
+internal class Post
     {
 
         internal static void List(Request req, Response res, NextCallback? next)

@@ -2,6 +2,8 @@
 using System.Net.Sockets;
 using System.Collections.Specialized;
 using System.Text;
+using dotNetExpress.Options;
+using dotNetExpress.Delegates;
 
 namespace dotNetExpress;
 

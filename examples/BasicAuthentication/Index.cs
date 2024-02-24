@@ -1,6 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.Net;
 using System.Text;
+using dotNetExpress.Delegates;
 
 namespace dotNetExpress.examples;
 

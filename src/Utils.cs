@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using dotNetExpress.Overrides;
 
 namespace dotNetExpress;
 
@@ -32,14 +33,11 @@ internal class Utils
     {
         const string handshakeKey = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
         var longKey = key + handshakeKey;
-
-        var sha1 = SHA1.Create();
-        var hashBytes = sha1.ComputeHash(Encoding.ASCII.GetBytes(longKey));
+        var hashBytes = SHA1.HashData(Encoding.ASCII.GetBytes(longKey));
 
         return Convert.ToBase64String(hashBytes);
     }
-
-
+    
     /// <summary>
     /// 
     /// </summary>
@@ -128,6 +126,8 @@ internal class Utils
         if (!string.IsNullOrEmpty(req.Get("content-length")))
         {
             var contentLength = int.Parse(req.Get("content-length"));
+
+            // When a content-length is available, a stream is provided in Request
             req.StreamReader = streamReader;
             req.StreamReader.SetLength(contentLength);
         }

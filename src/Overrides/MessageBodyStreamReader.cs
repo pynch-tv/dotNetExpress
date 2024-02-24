@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace dotNetExpress;
+namespace dotNetExpress.Overrides;
 
 public class MessageBodyStreamReader : Stream
 {
@@ -10,7 +10,7 @@ public class MessageBodyStreamReader : Stream
 
     public MessageBodyStreamReader(Stream inner)
     {
-        this._inner = inner;
+        _inner = inner;
     }
 
     public override bool CanRead => _inner.CanRead;

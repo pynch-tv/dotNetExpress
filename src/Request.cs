@@ -1,5 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.Net;
+using dotNetExpress.Options;
+using dotNetExpress.Overrides;
 
 namespace dotNetExpress;
 
@@ -7,7 +9,7 @@ public class Request
 {
     private readonly NameValueCollection _headers = new();
 
-    internal MessageBodyStreamReader StreamReader = null;
+    internal MessageBodyStreamReader? StreamReader = null;
 
     /// <summary>
     /// 

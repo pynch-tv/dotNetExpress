@@ -1,4 +1,4 @@
-﻿namespace dotNetExpress;
+﻿namespace dotNetExpress.Options;
 public class RangeOptions
 {
     /// <summary>

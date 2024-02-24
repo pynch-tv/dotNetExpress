@@ -2,6 +2,8 @@
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using dotNetExpress.Delegates;
+using dotNetExpress.Options;
 
 namespace dotNetExpress;
 
@@ -204,9 +206,13 @@ public class Response
     /// a positive integer that corresponds to an HTTP status code . If not specified,
     /// status defaults to “302 “Found”.
     /// </summary>
-    /// <param name="status"></param>
     /// <param name="path"></param>
-    public void Redirect(string status, string path)
+    public void Redirect(string path)
+    {
+        Redirect(HttpStatusCode.Found, path);
+    }
+
+    public void Redirect(HttpStatusCode code, string path)
     {
         throw new NotSupportedException();
     }

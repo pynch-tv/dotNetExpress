@@ -1,5 +1,5 @@
-﻿namespace dotNetExpress;
-    
+﻿namespace dotNetExpress.Options;
+
 public class StaticOptions
 {
     /// <summary>
@@ -15,7 +15,7 @@ public class StaticOptions
     /// <summary>
     /// Sets file extension fallbacks: If a file is not found, search for files with the specified extensions and serve the first one found. Example: ['html', 'htm'].	
     /// </summary>
-    public string Extensions ;
+    public string Extensions;
 
     /// <summary>
     /// Let client errors fall-through as unhandled requests, otherwise forward a client error.

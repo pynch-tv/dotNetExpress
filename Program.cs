@@ -4,7 +4,7 @@ internal class Program
 {
     private static void Main(string[] _)
     {
-        Examples.UploadToFtp();
+        Examples.HelloWorld();
 
         Console.ReadLine();
     }

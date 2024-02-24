@@ -1,4 +1,6 @@
-﻿namespace dotNetExpress.examples;
+﻿using dotNetExpress.Delegates;
+
+namespace dotNetExpress.examples;
 internal class Site
     {
 

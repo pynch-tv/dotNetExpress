@@ -1,5 +1,5 @@
-﻿namespace dotNetExpress;
-    
+﻿namespace dotNetExpress.Delegates;
+
 public delegate void NextCallback(Exception? err = null);
 
 public delegate void ErrorCallback(Exception err, Request request, Response response, NextCallback? next = null);
