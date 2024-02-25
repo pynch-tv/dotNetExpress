@@ -4,15 +4,11 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace dotNetExpress;
 
@@ -476,7 +472,7 @@ public class Response
     /// Use to quickly end the response without any data. If you need to respond with data,
     /// instead use methods such as res.send() and res.json().
     /// </summary>
-    internal void End(string data = null, Encoding encoding = null)
+    public void End(string data = null, Encoding encoding = null)
     {
         encoding ??= Encoding.UTF8;
         data ??= string.Empty;

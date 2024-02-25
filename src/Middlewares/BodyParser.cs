@@ -20,7 +20,13 @@ public class BodyParser
             return;
         }
 
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        if (null == req.Get("Content-Type"))
+        {
+            next?.Invoke(null);
+            return;
+        }
+
+        if (req.Get("Content-Type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
         {
             var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
 
@@ -48,7 +54,7 @@ public class BodyParser
             return;
         }
 
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        if (req.Get("Content-Type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
         {
             var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
         }
@@ -71,7 +77,7 @@ public class BodyParser
             return;
         }
 
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        if (req.Get("Content-Type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
         {
             var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
 
@@ -97,7 +103,7 @@ public class BodyParser
             return;
         }
 
-        if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+        if (req.Get("Content-Type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
         {
             var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
         }
