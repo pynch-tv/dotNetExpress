@@ -434,6 +434,11 @@ public class Response
             _headers[field] += value;
     }
 
+    public void Set(string field, int value)
+    {
+        Set(field, value.ToString());
+    }
+
     /// <summary>
     /// Sets the Content-Type HTTP header to the MIME type as determined by the specified type.
     /// If type contains the “/” character, then it sets the Content-Type to the exact value of type,

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using dotNetExpress.Delegates;
+using dotNetExpress.Options;
 
 namespace dotNetExpress;
 
@@ -22,7 +23,19 @@ public class Router
 
     private MiddlewareCallback? _catchAll = null;
 
+    private RouterOptions _options;
+
     private bool _gotoNext;
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="options"></param>
+    public Router(RouterOptions? options = null)
+    {
+        options ??= new RouterOptions();
+        _options = options;
+    }
 
     /// <summary>
     /// 
@@ -123,30 +136,6 @@ public class Router
 
         return false;
     }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="req"></param>
-    /// <param name="res"></param>
-    //public void Dispatch(Request req, Response res)
-    //{
-    //    _gotoNext = true;
-    //    foreach (var middleware in _middlewares)
-    //    {
-    //        _gotoNext = false;
-    //        middleware(req, res, next =>
-    //        {
-    //            if (null != next)
-    //                throw next;
-    //            _gotoNext = true;
-    //        });
-    //        if (!_gotoNext) break;
-    //    }
-
-    //    if (_gotoNext)
-    //        DispatchRoutes(req, res);
-    //}
 
     #region Methods
 

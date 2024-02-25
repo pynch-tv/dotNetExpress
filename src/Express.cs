@@ -156,7 +156,7 @@ public class Express : IDisposable
         return BodyParser.ParseJson;
     }
 
-    public static MiddlewareCallback Json(jsonOptions? options)
+    public static MiddlewareCallback Json(jsonOptions? options = null)
     {
         return BodyParser.ParseJson;
     }
@@ -186,7 +186,7 @@ public class Express : IDisposable
     /// <returns></returns>
     internal Router Router(RouterOptions? options = null)
     {
-        return _router;
+        return new Router(options);
     }
 
     /// <summary>
@@ -464,7 +464,7 @@ public class Express : IDisposable
     /// optional middleware. Use app.route() to avoid duplicate route names (and thus typo errors).
     /// </summary>
     /// <param name="path"></param>
-    public void Route(string path)
+    public Route Route(string path)
     {
         throw new NotImplementedException();
     }
@@ -481,15 +481,6 @@ public class Express : IDisposable
     /// <param name="key"></param>
     /// <param name="value"></param>
     public void Set(string key, string value) => _settings[key] = value;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="path"></param>
-    public void Use(string path)
-    {
-        _router.MountPath = path;
-    }
 
     /// <summary>
     /// 

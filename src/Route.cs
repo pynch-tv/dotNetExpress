@@ -4,7 +4,7 @@ using dotNetExpress.Delegates;
 
 namespace dotNetExpress;
 
-internal class Route
+public class Route
 {
     public HttpMethod Method { get; }
     public string Path { get; }
