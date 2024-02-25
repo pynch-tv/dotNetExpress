@@ -397,11 +397,7 @@ public class Response
     {
         _httpStatusCode = code;
 
-        var body = Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled);
-
-        Type("text/plain; charset=utf-8");
-
-        End(body);
+        End();
     }
 
     /// <summary>
@@ -482,19 +478,23 @@ public class Response
         // First line of HTTP
         headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
 
-        // construct/append headers
-        if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
-            Set("X-Powered-By", "dotNetExpress");
-        Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
-        if (_app.Listener.KeepAlive)
+        if (_httpStatusCode != HttpStatusCode.SwitchingProtocols)
         {
-            Set("Connection", "keep-alive");
-            Set("Keep-Alive", $"timeout={_app.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
-        }
-        else
-            Set("Connection", "close");
-        Set("Content-Length", data.Length.ToString());
+            // construct/append headers
+            if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
+                Set("X-Powered-By", "dotNetExpress");
+            Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
+            if (_app.Listener.KeepAlive)
+            {
+                Set("Connection", "keep-alive");
+                Set("Keep-Alive", $"timeout={_app.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
+            }
+            else
+                Set("Connection", "Close");
 
+            Set("Content-Length", data.Length.ToString());
+        }
+        
         // stringy headers
         foreach (string key in _headers)
             headerContent.AppendLine($"{key}: {_headers[key]}");

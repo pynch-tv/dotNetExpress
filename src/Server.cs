@@ -139,13 +139,8 @@ public class Server : TcpListener
         res.Set("Upgrade", "WebSocket");
         res.Set("Connection", "Upgrade");
         res.Set("Sec-WebSocket-Accept", HashKey(key));
-
+        res.Status(HttpStatusCode.SwitchingProtocols);
         res.End();
-
-        //lock (_webSockets)
-        //{
-        //    _webSockets.Add(tcpClient);
-        //}
     }
 
     #endregion
