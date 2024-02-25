@@ -156,7 +156,7 @@ public class Express : IDisposable
         return BodyParser.ParseJson;
     }
 
-    public static MiddlewareCallback Json(jsonOptions? options = null)
+    public static MiddlewareCallback Json(jsonOptions options = null)
     {
         return BodyParser.ParseJson;
     }
@@ -172,7 +172,7 @@ public class Express : IDisposable
     /// <param name="root"></param>
     /// <param name="options"></param>
     /// <returns></returns>
-    public static MiddlewareCallback Static(string root, StaticOptions? options = null)
+    public static MiddlewareCallback Static(string root, StaticOptions options = null)
     {
         var serveStatic = new ServeStatic(root, options);
 
@@ -184,7 +184,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    internal Router Router(RouterOptions? options = null)
+    internal Router Router(RouterOptions options = null)
     {
         return new Router(options);
     }
@@ -200,7 +200,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    public static MiddlewareCallback Raw(jsonOptions? options = null)
+    public static MiddlewareCallback Raw(jsonOptions options = null)
     {
         return BodyParser.ParseRaw;
     }
@@ -323,7 +323,7 @@ public class Express : IDisposable
     /// app settings table. 
     /// </summary>
     /// <param name="key"></param>
-    public string? Get(string key)
+    public string Get(string key)
     {
         return _settings[key];
     }
@@ -343,7 +343,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="port"></param>
     /// <param name="callback"></param>
-    public Server Listen(int port, ListenCallback? callback = null)
+    public Server Listen(int port, ListenCallback callback = null)
     {
         return Listen(port, string.Empty, null, callback);
     }
@@ -355,7 +355,7 @@ public class Express : IDisposable
     /// <param name="host"></param>
     /// <param name="backLog"></param>
     /// <param name="callback"></param>
-    public Server Listen(int port, string? host = "", object? backLog = null, ListenCallback? callback = null)
+    public Server Listen(int port, string host = "", object backLog = null, ListenCallback callback = null)
     {
         var maxThreadsCount = Environment.ProcessorCount * 4;
         ThreadPool.SetMaxThreads(maxThreadsCount, maxThreadsCount);

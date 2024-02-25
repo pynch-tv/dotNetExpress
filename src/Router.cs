@@ -21,7 +21,7 @@ public class Router
 
     private readonly Dictionary<string, Router> _routers = new();
 
-    private MiddlewareCallback? _catchAll = null;
+    private MiddlewareCallback _catchAll = null;
 
     private RouterOptions _options;
 
@@ -31,7 +31,7 @@ public class Router
     /// Constructor
     /// </summary>
     /// <param name="options"></param>
-    public Router(RouterOptions? options = null)
+    public Router(RouterOptions options = null)
     {
         options ??= new RouterOptions();
         _options = options;

@@ -8,7 +8,7 @@ public class Route
 {
     public HttpMethod Method { get; }
     public string Path { get; }
-    public MiddlewareCallback?[] Middlewares { get; }
+    public MiddlewareCallback[] Middlewares { get; }
 
     public List<string> Params = new();
 

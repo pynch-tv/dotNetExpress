@@ -111,7 +111,7 @@ public class Response
     /// <summary>
     /// Clears the cookie specified by name. For details about the options object, see res.cookie().
     /// </summary>
-    public void ClearCookie(string name, CookieOptions? options = null)
+    public void ClearCookie(string name, CookieOptions options = null)
     {
         options ??= new CookieOptions();
 
@@ -130,7 +130,7 @@ public class Response
     /// occurs, the callback function must explicitly handle the response process either
     /// by ending the request-response cycle, or by passing control to the next route.
     /// </summary>
-    public void Download(string path, string? filename = null, DownloadOptions? options = null) // todo: error callback
+    public void Download(string path, string filename = null, DownloadOptions options = null) // todo: error callback
     {
         options ??= new DownloadOptions();
         filename ??= Path.GetFileName(path);
@@ -170,7 +170,7 @@ public class Response
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
-    public string? Get(string field)
+    public string Get(string field)
     {
         return _headers[field];
     }
@@ -252,12 +252,12 @@ public class Response
     /// </summary>
     public void Location(string path)
     {
-        if (path.Equals("back"))
+        if (path.Equals("Back"))
         {
             throw new NotSupportedException();
         }
         else
-            Set("location", path);
+            Set("Location", path);
     }
 
     /// <summary>
@@ -298,7 +298,7 @@ public class Response
     /// </summary>
     /// <param name="body"></param>
     /// <returns></returns>
-    public void Send(string? body = null)
+    public void Send(string body = null)
     {
         End(body);
     }
@@ -325,7 +325,7 @@ public class Response
     /// </summary>
     /// <param name="filename"></param>
     /// <param name="options"></param>
-    public void SendFile(string filename, SendFileOptions? options = null) // TODO callback
+    public void SendFile(string filename, SendFileOptions options = null) // TODO callback
     {
         options ??= new SendFileOptions();
 
@@ -420,6 +420,11 @@ public class Response
         return this;
     }
 
+    public Response Status(int code)
+    {
+        return Status((HttpStatusCode)code);
+    }
+
     /// <summary>
     /// Sets the response’s HTTP header field to value.
     /// </summary>
@@ -471,7 +476,7 @@ public class Response
     /// Use to quickly end the response without any data. If you need to respond with data,
     /// instead use methods such as res.send() and res.json().
     /// </summary>
-    internal void End(string? data = null, Encoding? encoding = null)
+    internal void End(string data = null, Encoding encoding = null)
     {
         encoding ??= Encoding.UTF8;
         data ??= string.Empty;

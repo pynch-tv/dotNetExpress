@@ -11,7 +11,7 @@ public class Request
 {
     private readonly NameValueCollection _headers = new();
 
-    internal MessageBodyStreamReader? StreamReader = null;
+    public MessageBodyStreamReader StreamReader = null;
 
     /// <summary>
     /// 
@@ -43,7 +43,7 @@ public class Request
     /// it is undefined, and is populated when you use body-parsing middleware such as
     /// express.json() or express.urlencoded().
     /// </summary>
-    public string? Body = null;
+    public string Body = null;
 
     /// <summary>
     /// When using cookie-parser middleware, this property is an object that contains
@@ -102,7 +102,7 @@ public class Request
     /// allowing you to rewrite req.url freely for internal routing purposes. For example,
     /// the “mounting” feature of app.use() will rewrite req.url to strip the mount point.
     /// </summary>
-    public string OriginalUrl;
+    public Uri OriginalUrl;
 
     /// <summary>
     /// This property is an object containing properties mapped to the named route “parameters”.
@@ -231,7 +231,7 @@ public class Request
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public string? Get(string key) => _headers[key.ToLower()];
+    public string Get(string key) => _headers[key.ToLower()];
 
     /// <summary>
     /// Returns the matching content type if the incoming request’s “Content-Type” HTTP header
@@ -265,7 +265,7 @@ public class Request
     /// The options parameter is an object that can have the following properties.
     /// </summary>
     /// <returns></returns>
-    public Range Range(int size, RangeOptions? options = null)
+    public Range Range(int size, RangeOptions options = null)
     {
         return new Range();
     }
@@ -295,21 +295,21 @@ public class Request
             throw new HttpProtocolException(500, "First line must consists of 3 parts", new ProtocolViolationException("First line must consists of 3 parts"));
 
         request.Method = HttpMethod.Parse(requestLineParts[0]);
-        request.OriginalUrl = requestLineParts[1];
-        var idx = request.OriginalUrl.LastIndexOf('?');
+        request.OriginalUrl = new Uri(requestLineParts[1], UriKind.Relative);
+        var idx = requestLineParts[1].LastIndexOf('?');
         if (idx > -1)
         {
-            var queries = request.OriginalUrl[(idx + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries);
+            var queries = requestLineParts[1][(idx + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries);
             foreach (var query in queries)
             {
                 var queryParts = query.Split('=', StringSplitOptions.RemoveEmptyEntries);
                 if (queryParts.Length != 2) throw new UriFormatException($"Query part is malformatted: {query}");
                 request.Query.Add(queryParts[0], queryParts[1]);
             }
-            request.Path = request.OriginalUrl[..idx];
+            request.Path = requestLineParts[1][..idx];
         }
         else
-            request.Path = request.OriginalUrl;
+            request.Path = requestLineParts[1];
 
         idx = requestLineParts[2].IndexOf('/');
         request.Protocol = requestLineParts[2][..idx].ToLower();
