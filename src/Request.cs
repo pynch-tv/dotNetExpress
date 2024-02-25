@@ -1,5 +1,7 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Specialized;
 using System.Net;
+using System.Net.Http;
 using dotNetExpress.Options;
 using dotNetExpress.Overrides;
 
@@ -64,6 +66,11 @@ public class Request
     /// <summary>
     /// Contains the host derived from the HostName HTTP header.
     /// </summary>
+    public string Host;
+
+    /// <summary>
+    /// Contains the host derived from the HostName HTTP header.
+    /// </summary>
     public string Hostname;
 
     /// <summary>
@@ -123,7 +130,7 @@ public class Request
     /// in the route. When query parser is set to disabled, it is an empty object {},
     /// otherwise it is the result of the configured query parser.
     /// </summary>
-    public string Query = string.Empty;
+    public NameValueCollection Query = new();
 
     /// <summary>
     /// This property holds a reference to the response object that relates to this request object.
@@ -224,7 +231,7 @@ public class Request
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public string? Get(string key) => _headers[key];
+    public string? Get(string key) => _headers[key.ToLower()];
 
     /// <summary>
     /// Returns the matching content type if the incoming request’s “Content-Type” HTTP header
@@ -292,7 +299,13 @@ public class Request
         var idx = request.OriginalUrl.LastIndexOf('?');
         if (idx > -1)
         {
-            request.Query = request.OriginalUrl[(idx + 1)..];
+            var queries = request.OriginalUrl[(idx + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var query in queries)
+            {
+                var queryParts = query.Split('=', StringSplitOptions.RemoveEmptyEntries);
+                if (queryParts.Length != 2) throw new UriFormatException($"Query part is malformatted: {query}");
+                request.Query.Add(queryParts[0], queryParts[1]);
+            }
             request.Path = request.OriginalUrl[..idx];
         }
         else
@@ -315,8 +328,8 @@ public class Request
             request._headers.Add(headerPair[0].ToLower(), headerPair[1]);
         }
 
-        request.Hostname = request._headers["host"];
-        //request.Hostname = request.Hostname.Split(':')[0];
+        request.Host     = request._headers["host"];
+        request.Hostname = request._headers["host"].Split(':')[0];
 
         if (null != request._headers["X-Requested-With"])
             request.Xhr = request._headers["X-Requested-With"]!.Equals("XMLHttpRequest");

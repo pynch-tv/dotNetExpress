@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using dotNetExpress.Delegates;
 
 namespace dotNetExpress.Middlewares
@@ -21,7 +22,7 @@ namespace dotNetExpress.Middlewares
 
             if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
             {
-                var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+                var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
 
                 var sb = new byte[contentLength];
                 req.StreamReader.ReadExactly(sb, 0, sb.Length);
@@ -49,7 +50,7 @@ namespace dotNetExpress.Middlewares
 
             if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
             {
-                var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+                var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
             }
 
             next?.Invoke(null);
@@ -72,7 +73,7 @@ namespace dotNetExpress.Middlewares
 
             if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
             {
-                var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+                var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
 
                 var sb = new byte[contentLength];
                 var bytesRead = req.StreamReader.Read(sb, 0, sb.Length);
@@ -98,7 +99,7 @@ namespace dotNetExpress.Middlewares
 
             if (req.Get("content-type")!.Equals("application/json", StringComparison.OrdinalIgnoreCase))
             {
-                var contentLength = int.Parse(req.Get("content-length") ?? string.Empty);
+                var contentLength = int.Parse(req.Get("Content-Length") ?? string.Empty);
             }
 
             next?.Invoke(null);

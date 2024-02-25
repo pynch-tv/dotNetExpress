@@ -28,8 +28,6 @@ namespace dotNetExpress.Middlewares
         /// <param name="next"></param>
         public void Serve(Request req, Response res, NextCallback? next = null)
         {
-            Console.WriteLine($"in ServeStatic {_root} {_options.Fallthrough}");
-
             next?.Invoke(null);
         }
     }

@@ -1,8 +1,12 @@
-﻿using dotNetExpress.Overrides;
+﻿using System;
+using System.Collections.Generic;
+using dotNetExpress.Overrides;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace dotNetExpress;
 
@@ -56,7 +60,7 @@ public class Server : TcpListener
     /// 
     /// </summary>
     /// <param name="express"></param>
-    public void Accept(Express express)
+    public void Begin(Express express)
     {
         _express = express;
 
@@ -82,11 +86,19 @@ public class Server : TcpListener
                 }
                 catch (Exception e)
                 {
-                    // ignored
+                    _running = false;
                 }
             }
         });
         _tcpListenerThread.Start();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public void End()
+    {
+
     }
 
     #region WebSocket
@@ -137,6 +149,7 @@ public class Server : TcpListener
     }
 
     #endregion
+
     /// <summary>
     /// 
     /// </summary>
@@ -176,9 +189,9 @@ public class Server : TcpListener
             // Make Response object
             req.Res = new Response(express, stream);
 
-            if (!string.IsNullOrEmpty(req.Get("content-length")))
+            if (!string.IsNullOrEmpty(req.Get("Content-Length")))
             {
-                var contentLength = int.Parse(req.Get("content-length"));
+                var contentLength = int.Parse(req.Get("Content-Length"));
 
                 // When a content-length is available, a stream is provided in Request
                 req.StreamReader = streamReader;
@@ -197,7 +210,7 @@ public class Server : TcpListener
             }
             else
             {
-                req.Res.App.Router().Dispatch(req, req.Res);
+                express.Dispatch(req, req.Res);
 
                 // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
                 // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater

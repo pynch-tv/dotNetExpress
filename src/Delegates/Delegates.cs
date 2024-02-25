@@ -1,4 +1,6 @@
-﻿namespace dotNetExpress.Delegates;
+﻿using System;
+
+namespace dotNetExpress.Delegates;
 
 public delegate void NextCallback(Exception? err = null);
 

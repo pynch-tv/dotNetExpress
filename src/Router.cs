@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using dotNetExpress.Delegates;
 
 namespace dotNetExpress;
@@ -19,7 +22,7 @@ public class Router
 
     private MiddlewareCallback? _catchAll = null;
 
-    private bool gotoNext;
+    private bool _gotoNext;
 
     /// <summary>
     /// 
@@ -51,8 +54,22 @@ public class Router
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <returns></returns>
-    private bool Evaluate(Request req, Response res)
+    public bool Dispatch(Request req, Response res)
     {
+        _gotoNext = true;
+        foreach (var middleware in _middlewares)
+        {
+            _gotoNext = false;
+            middleware(req, res, next =>
+            {
+                if (null != next)
+                    throw next;
+                _gotoNext = true;
+            });
+            if (!_gotoNext) break;
+        }
+        if (!_gotoNext) return true;
+
         for (var index = 0; index < _routes.Count; index++)
         {
             var route = _routes[index];
@@ -60,16 +77,18 @@ public class Router
             if (route.Method != req.Method) continue;
             if (!Match(route.Path, req)) continue;
 
+            req.BaseUrl = this.MountPath;
+
             foreach (var middleware in route.Middlewares)
             {
-                gotoNext = false;
+                _gotoNext = false;
                 try
                 {
                     middleware?.Invoke(req, res, next =>
                     {
                         if (null != next)
                             throw next;
-                        gotoNext = true;
+                        _gotoNext = true;
                     });
                 }
                 catch (Exception e)
@@ -78,8 +97,8 @@ public class Router
 
                     foreach (var errorCallback in _errorHandler)
                     {
-                        errorCallback(e as Exception, req, res, next => { gotoNext = true; });
-                        if (!gotoNext) break;
+                        errorCallback(e as Exception, req, res, next => { _gotoNext = true; });
+                        if (!_gotoNext) break;
                     }
 
                     res.Send(e.Message);
@@ -92,7 +111,7 @@ public class Router
 
         foreach (var router in _routers.Values)
         {
-            if (router.Evaluate(req, res))
+            if (router.Dispatch(req, res))
                 return true;
         }
 
@@ -110,24 +129,24 @@ public class Router
     /// </summary>
     /// <param name="req"></param>
     /// <param name="res"></param>
-    public void Dispatch(Request req, Response res)
-    {
-        gotoNext = true;
-        foreach (var middleware in _middlewares)
-        {
-            gotoNext = false;
-            middleware(req, res, next =>
-            {
-                if (null != next)
-                    throw next;
-                gotoNext = true;
-            });
-            if (!gotoNext) break;
-        }
+    //public void Dispatch(Request req, Response res)
+    //{
+    //    _gotoNext = true;
+    //    foreach (var middleware in _middlewares)
+    //    {
+    //        _gotoNext = false;
+    //        middleware(req, res, next =>
+    //        {
+    //            if (null != next)
+    //                throw next;
+    //            _gotoNext = true;
+    //        });
+    //        if (!_gotoNext) break;
+    //    }
 
-        if (gotoNext)
-            Evaluate(req, res);
-    }
+    //    if (_gotoNext)
+    //        DispatchRoutes(req, res);
+    //}
 
     #region Methods
 

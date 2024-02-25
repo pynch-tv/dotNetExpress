@@ -1,4 +1,7 @@
-﻿namespace dotNetExpress.Lookup;
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace dotNetExpress.Lookup;
 
 public static class Mime
 {

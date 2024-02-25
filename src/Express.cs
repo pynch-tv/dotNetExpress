@@ -1,12 +1,15 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Collections.Specialized;
+using System.Threading;
 using dotNetExpress.Options;
 using dotNetExpress.Delegates;
 using dotNetExpress.Middlewares;
 
 namespace dotNetExpress;
 
-public class Express 
+public class Express : IDisposable
 {
     #region properties
 
@@ -28,7 +31,7 @@ public class Express
 
     #endregion
 
-    #region Constructor
+    #region Constructor & Destructor
 
     /// <summary>
     /// Constructor
@@ -126,6 +129,16 @@ public class Express
     #endregion
 
     #region Express methods
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="req"></param>
+    /// <param name="res"></param>
+    internal void Dispatch(Request req, Response res)
+    {
+        _router.Dispatch(req, res);
+    }
 
     /// <summary>
     /// This is a built-in middleware function in Express. It parses incoming requests with JSON payloads and is based on body-parser.
@@ -349,7 +362,7 @@ public class Express
         ThreadPool.SetMinThreads(2, 2);
 
         Listener = new Server(IPAddress.Any, port);
-        Listener.Accept(this);
+        Listener.Begin(this);
 
         callback?.Invoke();
 

@@ -1,17 +1,18 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Net;
-using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
+using System.Net.Http;
+using System.Reflection;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Text.Unicode;
-using System.Xml;
-using dotNetExpress.Delegates;
+using System.Xml.Linq;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace dotNetExpress;
 
@@ -206,9 +207,41 @@ public class Response
     /// Joins the links provided as properties of the parameter to populate the response’s
     /// Link HTTP header field.
     /// </summary>
-    public void Links(object links)
+    public void Links(IEnumerable<dynamic> links)
     {
-        throw new NotSupportedException();
+        // Get some info from the dynamic object to construct the link
+        foreach (var link in links)
+        {
+            var uriProperty = string.Empty;
+            var linkDictionary = Dynamic.ToDictionary(link);
+            foreach (KeyValuePair<string, dynamic> pair in linkDictionary)
+            {
+                if (pair.Value.GetType() == typeof(Uri))
+                {
+                    uriProperty = pair.Key;
+                    break;
+                }
+
+                if (pair.Value.GetType() != typeof(string)) continue;
+                if (!Uri.IsWellFormedUriString(pair.Value, UriKind.Absolute)) continue;
+
+                uriProperty = pair.Key;
+                break;
+            }
+
+            if (string.IsNullOrEmpty(uriProperty)) return;
+
+            var value = $"<{linkDictionary[uriProperty]}>";
+
+            foreach (KeyValuePair<string, dynamic> pair in linkDictionary)
+            {
+                if (pair.Key == uriProperty) continue;
+                value += $"; {pair.Key}=\"{pair.Value}\"";
+            }
+
+            // Set of append the Link header
+            this.Set("Link", value);
+        }
     }
 
     /// <summary>
@@ -224,7 +257,7 @@ public class Response
             throw new NotSupportedException();
         }
         else
-            _headers["location"] = path;
+            Set("location", path);
     }
 
     /// <summary>
@@ -323,16 +356,16 @@ public class Response
 
         // construct/append headers
         if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
-            _headers["X-Powered-By"] = "dotNetExpress";
-        _headers["Date"] = DateTime.Now.ToUniversalTime().ToString("r");
+            Set("X-Powered-By", "dotNetExpress");
+        Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
         if (_app.Listener.KeepAlive)
         {
-            _headers["Connection"] = "keep-alive";
-            _headers["Keep-Alive"] = $"timeout={_app.Listener.KeepAliveTimeout}"; // Keep-Alive is in seconds
+            Set("Connection", "keep-alive");
+            Set("Keep-Alive", $"timeout={_app.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
         }
         else
-            _headers["Connection"] = "close";
-        _headers["content-length"] = file.Length.ToString();
+            Set("Connection", "close");
+        Set("Content-Length", file.Length.ToString());
 
         // stringy headers
         foreach (string key in _headers)
@@ -388,14 +421,17 @@ public class Response
     }
 
     /// <summary>
-    /// Sets the response’s HTTP header field to value. To set multiple fields at once, pass an object as the parameter.
+    /// Sets the response’s HTTP header field to value.
     /// </summary>
     /// <param name="field"></param>
     /// <param name="value"></param>
     /// <returns></returns>
     public void Set(string field, string value)
     {
-        _headers[field] = value;
+        if (!string.IsNullOrEmpty(_headers[field]))
+            _headers[field] += ", " + value;
+        else
+            _headers[field] += value;
     }
 
     /// <summary>
@@ -407,7 +443,7 @@ public class Response
     /// <param name="type"></param>
     public void Type(string type)
     {
-        _headers["Content-Type"] = type;
+        Set("Content-Type",  type);
     }
 
     /// <summary>
@@ -415,7 +451,7 @@ public class Response
     /// </summary>
     public Response Vary(string field)
     {
-        _headers["Vary"] = field;
+        Set("Vary",field);
 
         return this;
     }
@@ -442,16 +478,16 @@ public class Response
 
         // construct/append headers
         if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
-            _headers["X-Powered-By"] = "dotNetExpress";
-        _headers["Date"] = DateTime.Now.ToUniversalTime().ToString("r");
+            Set("X-Powered-By", "dotNetExpress");
+        Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
         if (_app.Listener.KeepAlive)
         {
-            _headers["Connection"] = "keep-alive";
-            _headers["Keep-Alive"] = $"timeout={_app.Listener.KeepAliveTimeout}"; // Keep-Alive is in seconds
+            Set("Connection", "keep-alive");
+            Set("Keep-Alive", $"timeout={_app.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
         }
         else
-            _headers["Connection"] = "close";
-        _headers["content-length"] = data.Length.ToString();
+            Set("Connection", "close");
+        Set("Content-Length", data.Length.ToString());
 
         // stringy headers
         foreach (string key in _headers)
