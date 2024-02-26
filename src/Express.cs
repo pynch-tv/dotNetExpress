@@ -11,7 +11,7 @@ namespace dotNetExpress;
 
 public class Express : IDisposable
 {
-    #region properties
+    #region Properties
 
     private readonly Router _router = new();
 
@@ -22,10 +22,6 @@ public class Express : IDisposable
     private readonly NameValueCollection _locals = new();
 
     internal Server Listener;
-
-    private Thread _tcpListenerThread;
-
-    private bool _running = false;
 
     private bool _disposed;
 
@@ -117,10 +113,7 @@ public class Express : IDisposable
         if (disposing)
         {
             if (!Listener.Pending())
-            {
                 Listener.Stop();
-                _running = false;
-            }
         }
 
         _disposed = true;
@@ -528,6 +521,15 @@ public class Express : IDisposable
     {
         _router.Use(callback);
     }
+
+    #endregion
+
+    #region WebSocket
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public void WsSend(string data) => Listener.WsSend(data);
 
     #endregion
 }

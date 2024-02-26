@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Pynch.Nexa.Tools.Net;
 
 namespace dotNetExpress;
 
@@ -26,6 +27,103 @@ internal class Parameters
     }
 }
 
+public class WsClient
+{
+    public enum OpcodeType
+    {
+        /* Denotes a continuation code */
+        Fragment = 0,
+
+        /* Denotes a text code */
+        Text = 1,
+
+        /* Denotes a binary code */
+        Binary = 2,
+
+        /* Denotes a closed audioVideoServer */
+        ClosedConnection = 8
+    }
+
+    private const int MessageBufferSize = 1024;
+    private readonly Server _server;
+
+    private readonly Socket _socket;
+
+    /// <summary>
+    /// </summary>
+    /// <param name="server"></param>
+    /// <param name="socket"></param>
+    public WsClient(Server server, Socket socket)
+    {
+        _server = server;
+        _socket = socket;
+
+        GetSocket().BeginReceive(new byte[] { 0 }, 0, 0, SocketFlags.None, MessageCallback, null);
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    public Socket GetSocket()
+    {
+        return _socket;
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    public Server GetServer()
+    {
+        return _server;
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="asyncResult"></param>
+    private void MessageCallback(IAsyncResult asyncResult)
+    {
+        try
+        {
+            GetSocket().EndReceive(asyncResult);
+
+            // Read the incoming message 
+            var messageBuffer = new byte[MessageBufferSize];
+            var bytesReceived = GetSocket().Receive(messageBuffer);
+
+            // Resize the byte array to remove whitespaces 
+            if (bytesReceived < messageBuffer.Length) Array.Resize(ref messageBuffer, bytesReceived);
+
+            // Get the opcode of the frame
+            var opCode = GetFrameOpcode(messageBuffer);
+
+            // If the audioVideoServer was closed
+            if (opCode == OpcodeType.ClosedConnection)
+            {
+                GetServer().WsDisconnect(this);
+                return;
+            }
+
+            // Start to receive messages again
+            GetSocket().BeginReceive(new byte[] { 0 }, 0, 0, SocketFlags.None, MessageCallback, null);
+        }
+        catch (Exception)
+        {
+            GetSocket().Close();
+            GetSocket().Dispose();
+            GetServer().WsDisconnect(this);
+        }
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="frame"></param>
+    /// <returns></returns>
+    private static OpcodeType GetFrameOpcode(IReadOnlyList<byte> frame)
+    {
+        return (OpcodeType)frame[0] - 128;
+    }
+}
+
 public class Server : TcpListener
 {
     private Thread _tcpListenerThread;
@@ -34,7 +132,7 @@ public class Server : TcpListener
 
     private Express _express;
 
-    private static readonly List<TcpClient> _webSockets = new();
+    private static readonly List<WsClient> _webSockets = new();
 
     public bool KeepAlive = false;
 
@@ -102,6 +200,107 @@ public class Server : TcpListener
     }
 
     #region WebSocket
+
+
+    /// <summary>
+    /// </summary>
+    /// <param name="client"></param>
+    public void WsDisconnect(WsClient client)
+    {
+        lock (_webSockets)
+        {
+            _webSockets.Remove(client);
+        }
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public void WsSend(string data)
+    {
+        var frameMessage = GetFrameFromString(data);
+
+        lock (_webSockets)
+        {
+            // reverse iterate, so that we can remove
+            // items from array in case of error
+            // without screwing up the array
+            for (var i = _webSockets.Count - 1; i >= 0; i--)
+            {
+                var client = _webSockets[i];
+
+                try
+                {
+                    client.GetSocket().Send(frameMessage);
+                }
+                catch (Exception)
+                {
+                    _webSockets.Remove(client);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="message"></param>
+    /// <param name="opcode"></param>
+    /// <returns></returns>
+    private static byte[] GetFrameFromString(string message, OpcodeTypeEnum opcode = OpcodeTypeEnum.Text)
+    {
+        var bytesRaw = Encoding.Default.GetBytes(message);
+        var frame = new byte[10];
+        var length = bytesRaw.Length;
+
+        frame[0] = (byte)(128 + (int)opcode);
+
+        int indexStartRawData;
+        if (length <= 125)
+        {
+            frame[1] = (byte)length;
+            indexStartRawData = 2;
+        }
+        else if (length <= 65535)
+        {
+            frame[1] = 126;
+            frame[2] = (byte)((length >> 8) & 255);
+            frame[3] = (byte)(length & 255);
+            indexStartRawData = 4;
+        }
+        else
+        {
+            frame[1] = 127;
+            frame[2] = (byte)((length >> 56) & 255);
+            frame[3] = (byte)((length >> 48) & 255);
+            frame[4] = (byte)((length >> 40) & 255);
+            frame[5] = (byte)((length >> 32) & 255);
+            frame[6] = (byte)((length >> 24) & 255);
+            frame[7] = (byte)((length >> 16) & 255);
+            frame[8] = (byte)((length >> 8) & 255);
+            frame[9] = (byte)(length & 255);
+
+            indexStartRawData = 10;
+        }
+
+        var response = new byte[indexStartRawData + length];
+
+        var responseIdx = 0;
+
+        for (var i = 0; i < indexStartRawData; i++)
+        {
+            response[responseIdx] = frame[i];
+            responseIdx++;
+        }
+
+        for (var i = 0; i < length; i++)
+        {
+            response[responseIdx] = bytesRaw[i];
+            responseIdx++;
+        }
+
+        return response;
+    }
 
     /// <summary>
     /// 
@@ -200,7 +399,7 @@ public class Server : TcpListener
                 // These socket are not disposed, but kept!
                 lock (_webSockets)
                 {
-                    _webSockets.Add(tcpClient);
+                    _webSockets.Add( new WsClient(this, tcpClient.Client));
                 }
             }
             else
