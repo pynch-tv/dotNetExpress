@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace dotNetExpress.Delegates;
 
@@ -10,4 +11,4 @@ public delegate void MiddlewareCallback(Request request, Response response, Next
 
 public delegate void ListenCallback();
 
-public delegate void RenderEngineCallback(string path);
+public delegate string RenderEngineCallback(string path, Dictionary<string, dynamic> locals);

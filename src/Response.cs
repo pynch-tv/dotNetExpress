@@ -59,7 +59,7 @@ public class Response
     /// The variables set on res.locals are available within a single request-response cycle,
     /// and will not be shared between requests.
     /// </summary>
-    public NameValueCollection Locals = new();
+    public Dictionary<string, dynamic> Locals = new();
 
     #endregion
 
@@ -278,9 +278,10 @@ public class Response
     /// </summary>
     /// <param name="view"></param>
     /// <param name="locals"></param>
-    public void Render(string view, NameValueCollection locals)
+    public void Render(string view, Dictionary<string, dynamic> locals)
     {
-        _app.Render(view, null);
+        var html = _app.Render(view, locals);
+        Status(HttpStatusCode.OK).Send(html);
     }
 
     /// <summary>
