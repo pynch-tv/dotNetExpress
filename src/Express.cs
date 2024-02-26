@@ -526,10 +526,7 @@ public class Express : IDisposable
 
     #region WebSocket
 
-    /// <summary>
-    /// 
-    /// </summary>
-    public void WsSend(string data) => Listener.WsSend(data);
+    public WsServer WsServer => Listener.WsServer;
 
     #endregion
 }
