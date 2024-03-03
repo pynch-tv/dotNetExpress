@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
 
+
 namespace dotNetExpress;
 
 public class Response
@@ -141,9 +142,7 @@ public class Response
         // merge user-provided headers
         options.Headers.Add(headers);
 
-        var opts = SendFileOptions.From(options);
-
-        this.SendFile(path, opts);
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -278,7 +277,7 @@ public class Response
     /// </summary>
     /// <param name="view"></param>
     /// <param name="locals"></param>
-    public void Render(string view, Dictionary<string, dynamic> locals)
+    public void Render(string view, dynamic locals)
     {
         var html = _app.Render(view, locals);
         Status(HttpStatusCode.OK).Send(html);

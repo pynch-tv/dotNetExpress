@@ -52,10 +52,20 @@ public class Router
 
         for (var i = 0; i < leftSubDirs.Length; i++)
         {
-            if (leftSubDirs[i].StartsWith(':'))
-                req.Params[leftSubDirs[i][1..]] = rightSubDirs[i];
-            else
-            if (leftSubDirs[i] != rightSubDirs[i]) return false;
+            if (leftSubDirs[i].Contains(':'))
+            {
+                var leftIndex = leftSubDirs[i].IndexOf(':');
+                if (string.Compare(leftSubDirs[i], 0, rightSubDirs[i], 0, leftIndex) != 0) return false;
+
+                var rightStart = rightSubDirs[i].Remove(leftIndex);
+                var rightEnd = rightSubDirs[i].Remove(0, leftIndex);
+
+                if (leftSubDirs[i][..leftIndex] != rightStart) return false;
+
+                req.Params[leftSubDirs[i][++leftIndex..]] = rightEnd;
+            }
+            else if (leftSubDirs[i] != rightSubDirs[i]) 
+                return false;
         }
 
         return true;

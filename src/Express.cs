@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Collections.Specialized;
-using System.IO;
 using System.Threading;
 using dotNetExpress.Options;
 using dotNetExpress.Delegates;
@@ -446,27 +445,16 @@ public class Express : IDisposable
     /// </summary>
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
-    public string Render(string path, Dictionary<string, dynamic> locals)
+    public string Render(string view, dynamic locals)
     {
-        var view = Get("view engine");
-        if (null == view)
+        var viewEngineName = Get("view engine");
+        if (null == viewEngineName)
             throw new ArgumentNullException("view engine not Set");
-        var viewEngine = _engines[view];
+        var viewEngine = _engines[viewEngineName];
         if (null == viewEngine)
             throw new KeyNotFoundException($"engine {viewEngine} not found");
 
-        var views = Get("views");
-        if (string.IsNullOrEmpty(views))
-        {
-            var __dirname = Directory.GetCurrentDirectory();
-            path = System.IO.Path.Combine(__dirname, "Views", path);
-        }
-        else
-        {
-            path = System.IO.Path.Combine(views, path);
-        }
-
-        return viewEngine(path, locals);
+        return viewEngine(view, locals);
     }
 
     /// <summary>

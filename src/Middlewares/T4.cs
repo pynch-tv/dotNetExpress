@@ -1,23 +1,38 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.IO;
+using System.Reflection;
 
 namespace dotNetExpress.Middlewares;
 
 public class TemplateEngine
 {
+    // This middleware and the dll are coupled
+    private const string LibName = "Pynch.Nexa.T4.dll";
+
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="filename"></param>
+    /// <param name="view"></param>
     /// <param name="locals"></param>
     /// <returns></returns>
-    public static string T4(string filename, Dictionary<string, dynamic> locals)
+    /// <exception cref="FileNotFoundException"></exception>
+    /// <exception cref="Exception"></exception>
+    public static string T4(string view, dynamic locals)
     {
-        //var asm = Assembly.LoadFrom("Pynch.Nexa.dll");
-        //var type = asm.GetType($"Pynch.Nexa.Views.LandingPage");
+        var __dirname = Directory.GetCurrentDirectory();
 
-        //dynamic template = Activator.CreateInstance(type);
-        //return template.TransformText(uri, title, obj);
+        var filename = Path.Combine(__dirname, LibName);
+        var asm = Assembly.LoadFrom(filename);
+        if (null == asm)
+            throw new FileNotFoundException($"dll {filename} not found in {__dirname}");
+        var type = asm.GetType($"Pynch.Nexa.T4.Views.{view}");
+        if (null == type)
+            throw new Exception($"TypeOf(Pynch.Nexa.T4.Views.{view} not found");
 
-        return string.Empty;
+        dynamic template = Activator.CreateInstance(type);
+        if (null == template)
+            throw new Exception($"Unable to create instance of {type}");
+
+        return template.TransformText(locals);
     }
 }

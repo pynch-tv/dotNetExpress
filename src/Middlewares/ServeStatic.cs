@@ -1,5 +1,6 @@
 ﻿using dotNetExpress.Delegates;
 using dotNetExpress.Options;
+using System.IO;
 
 namespace dotNetExpress.Middlewares;
 
@@ -28,6 +29,14 @@ public class ServeStatic
     /// <param name="next"></param>
     public void Serve(Request req, Response res, NextCallback next = null)
     {
+      
+        var resource = Path.Combine(_root, req.Path.TrimStart('/'));
+        if (File.Exists(resource))
+        {
+            res.SendFile(resource);
+            return; // do not evaluate next
+        }
+        
         next?.Invoke(null);
     }
 }
