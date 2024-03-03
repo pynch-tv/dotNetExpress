@@ -93,6 +93,15 @@ public class Request
     public IPAddress[] Ips;
 
     /// <summary>
+    /// 
+    /// </summary>
+    public Version HttpVersion;
+
+    public int HttpVersionMajor => HttpVersion.Major;
+
+    public int HttpVersionMinor => HttpVersion.Minor;
+
+    /// <summary>
     /// Contains a string corresponding to the HTTP method of the request: GET, POST, PUT, and so on.
     /// </summary>
     public HttpMethod Method;
@@ -313,6 +322,7 @@ public class Request
 
         idx = requestLineParts[2].IndexOf('/');
         request.Protocol = requestLineParts[2][..idx].ToLower();
+        request.HttpVersion = new Version(requestLineParts[2][++idx..]);
         #endregion
 
         #region Headers

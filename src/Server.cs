@@ -82,7 +82,7 @@ public class Server : TcpListener
                 {
                     _ = ThreadPool.QueueUserWorkItem(ClientConnection!, Parameters.CreateInstance(_express, this.AcceptTcpClient()));
                 }
-                catch (Exception e)
+                catch (System.Exception e)
                 {
                     _running = false;
                 }

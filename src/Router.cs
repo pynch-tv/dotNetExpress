@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using dotNetExpress.Delegates;
+using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
 
 namespace dotNetExpress;
@@ -114,17 +116,28 @@ public class Router
                         _gotoNext = true;
                     });
                 }
-                catch (Exception e)
+                catch (ExpressException e)
                 {
-                    res.Status(HttpStatusCode.InternalServerError);
+                    res.Status(e.StatusCode);
 
                     foreach (var errorCallback in _errorHandler)
                     {
-                        errorCallback(e as Exception, req, res, next => { _gotoNext = true; });
+                        errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
                         if (!_gotoNext) break;
                     }
 
-                    res.Send(e.Message);
+                    res.Status(e.StatusCode).Json(e.toJson());
+                    return false;
+                }
+                catch (Exception e)
+                {
+                    foreach (var errorCallback in _errorHandler)
+                    {
+                        errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
+                        if (!_gotoNext) break;
+                    }
+
+                    res.Status(500).Json(new { code = 500, description = e.Message });
                     return false;
                 }
             }
