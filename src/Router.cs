@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Net.Mail;
 using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
@@ -64,7 +63,7 @@ public class Router
 
                 if (leftSubDirs[i][..leftIndex] != rightStart) return false;
 
-                req.Params[leftSubDirs[i][++leftIndex..]] = rightEnd;
+                req.Params[leftSubDirs[i][++leftIndex..]] = WebUtility.UrlDecode(rightEnd);
             }
             else if (leftSubDirs[i] != rightSubDirs[i]) 
                 return false;

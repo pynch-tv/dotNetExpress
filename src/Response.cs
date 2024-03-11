@@ -6,37 +6,27 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
 
 
 namespace dotNetExpress;
 
-public class Response
+public class Response : ServerResponse
 {
     public HttpMethod HttpMethod;
 
-    private readonly NameValueCollection _headers = new();
-
     private readonly NameValueCollection _locals = new();
-
-    private HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
-
-    private readonly Stream _stream;
-
-    private readonly Express _app;
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="app"></param>
     /// <param name="stream"></param>
-    internal Response(Express app, Stream stream)
+    internal Response(Express app, Stream stream) : base(stream)
     {
-        _app = app;
+        App = app;
         HeadersSent = false;
-        _stream = stream;
     }
 
     #region Properties
@@ -46,14 +36,7 @@ public class Response
     /// res.app is identical to the req.app property in the request object.
     /// </summary>
     /// <returns></returns>
-    public Express App => _app;
-
-
-    /// <summary>
-    /// Boolean property that indicates if the app sent HTTP headers for the response.
-    /// </summary>
-    /// <returns></returns>
-    public bool HeadersSent;
+    public Express App { get; }
 
     /// <summary>
     /// Use this property to set variables accessible in templates rendered with res.render.
@@ -279,7 +262,7 @@ public class Response
     /// <param name="locals"></param>
     public void Render(string view, dynamic locals)
     {
-        var html = _app.Render(view, locals);
+        var html = App.Render(view, locals);
         Status(HttpStatusCode.OK).Send(html);
     }
 
@@ -296,7 +279,10 @@ public class Response
     /// <returns></returns>
     public void Send(string body = null)
     {
-        End(body);
+        if (!HasHeader("Content-Length"))
+            Set("Content-Length", body.Length);
+
+        Write(body, Encoding.UTF8);
     }
 
     public void Send(object body)
@@ -307,6 +293,11 @@ public class Response
     public void Send(bool body)
     {
         throw new NotSupportedException();
+    }
+
+    public void Send(byte[] buffer)
+    {
+        Write(buffer, buffer.Length);
     }
 
     /// <summary>
@@ -343,40 +334,19 @@ public class Response
         if (options.LastModified)
             _headers.Add(new NameValueCollection() { { "Last-Modified", file.LastWriteTime.ToUniversalTime().ToString("r") } });
 
-        var encoding = Encoding.UTF8;
-
-        var headerContent = new StringBuilder();
-
-        // First line of HTTP
-        headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
-
         // construct/append headers
-        if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
+        if (App.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
             Set("X-Powered-By", "dotNetExpress");
-        Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
-        if (_app.Listener.KeepAlive)
+        if (App.Listener.KeepAlive)
         {
             Set("Connection", "keep-alive");
-            Set("Keep-Alive", $"timeout={_app.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
+            Set("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
         }
         else
             Set("Connection", "close");
         Set("Content-Length", file.Length.ToString());
 
-        // stringy headers
-        foreach (string key in _headers)
-            headerContent.AppendLine($"{key}: {_headers[key]}");
-        // last header line is empty
-        headerContent.AppendLine();
-
-        // Prepare to send it out
-        var headerString = headerContent.ToString();
-        var header = encoding.GetBytes(headerString);
-        var headerLength = encoding.GetByteCount(headerString);
-
-        // send headers
-        _stream.Write(header, 0, headerLength);
-        HeadersSent = true;
+        WriteHead(_httpStatusCode);
 
         // send content (if any)
         if (file.Length <= 0) return;
@@ -396,6 +366,8 @@ public class Response
     public void SendStatus(HttpStatusCode code)
     {
         _httpStatusCode = code;
+
+        WriteHead(_httpStatusCode);
 
         End();
     }
@@ -428,7 +400,7 @@ public class Response
         if (!string.IsNullOrEmpty(_headers[field]))
             _headers[field] += ", " + value;
         else
-            _headers[field] += value;
+            _headers[field] = value;
     }
 
     public void Set(string field, int value)
@@ -445,6 +417,21 @@ public class Response
     /// <param name="type"></param>
     public void Type(string type)
     {
+        var parts = type.Split("/", StringSplitOptions.RemoveEmptyEntries);
+        switch (parts.Length)
+        {
+            case 0:
+                return;
+            case 1:
+                var ext = Path.GetExtension(parts[0]).Trim('.');
+                type = MimeTypes.Lookup(ext);
+                break;
+            case 2:
+                break;
+            default:
+                return;
+        }
+
         Set("Content-Type",  type);
     }
 
@@ -460,62 +447,22 @@ public class Response
 
     #endregion
 
-    #region Internal methods
+    #region Override methods
 
-    /// <summary>
-    /// Ends the response process.
-    ///
-    /// Use to quickly end the response without any data. If you need to respond with data,
-    /// instead use methods such as res.send() and res.json().
-    /// </summary>
-    public void End(string data = null, Encoding encoding = null)
+    protected override void WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
     {
-        encoding ??= Encoding.UTF8;
-        data ??= string.Empty;
+        if (App.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
+            SetHeader("X-Powered-By", "dotNetExpress");
 
-        var headerContent = new StringBuilder();
-
-        // First line of HTTP
-        headerContent.AppendLine($"HTTP/1.1 {(int)_httpStatusCode} {Regex.Replace(_httpStatusCode.ToString(), "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
-
-        if (_httpStatusCode != HttpStatusCode.SwitchingProtocols)
+        if (App.Listener.KeepAlive)
         {
-            // construct/append headers
-            if (_app.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
-                Set("X-Powered-By", "dotNetExpress");
-            Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
-            if (_app.Listener.KeepAlive)
-            {
-                Set("Connection", "keep-alive");
-                Set("Keep-Alive", $"timeout={_app.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
-            }
-            else
-                Set("Connection", "Close");
-
-            Set("Content-Length", data.Length.ToString());
+            SetHeader("Connection", "keep-alive");
+            SetHeader("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
         }
-        
-        // stringy headers
-        foreach (string key in _headers)
-            headerContent.AppendLine($"{key}: {_headers[key]}");
-        // last header line is empty
-        headerContent.AppendLine();
+        else
+            SetHeader("Connection", "Close");
 
-        // Prepare to send it out
-        var headerString = headerContent.ToString();
-        var header = encoding.GetBytes(headerString);
-        var headerLength = encoding.GetByteCount(headerString);
-
-        // send headers
-        _stream.Write(header, 0, headerLength);
-        HeadersSent = true;
-
-        // send content (if any)
-        if (data.Length <= 0) return;
-
-        var body = encoding.GetBytes(data);
-        var bodyLength = encoding.GetByteCount(data);
-        _stream.Write(body, 0, bodyLength);
+        base.WriteHead(statusCode, statusMessage, headers);
     }
 
     #endregion

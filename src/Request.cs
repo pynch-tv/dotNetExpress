@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using dotNetExpress.Lookup;
 using dotNetExpress.Options;
 using dotNetExpress.Overrides;
 
@@ -9,8 +11,6 @@ namespace dotNetExpress;
 
 public class Request
 {
-    private readonly NameValueCollection _headers = new();
-
     public MessageBodyStreamReader StreamReader = null;
 
     /// <summary>
@@ -62,6 +62,11 @@ public class Request
     /// Further details for how cache validation works can be found in the HTTP/1.1 Caching Specification.
     /// </summary>
     public bool Fresh;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public readonly NameValueCollection Headers = new();
 
     /// <summary>
     /// Contains the host derived from the HostName HTTP header.
@@ -191,11 +196,22 @@ public class Request
     /// Checks if the specified content types are acceptable, based on the request’s Accept HTTP header field.
     /// The method returns the best match, or if none of the specified content types is acceptable,
     /// returns false (in which case, the application should respond with 406 "Not Acceptable").
+    ///
+    /// The type value may be a single MIME type string (such as “application/json”), an extension name
+    /// such as “json”, a comma-delimited list, or an array. For a list or array, the method returns the
+    /// best match (if any).
     /// </summary>
     /// <returns></returns>
-    public string Accepts()
+    public string Accepts(string type)
     {
-        return "";
+        return Accepts(new[] { type });
+    }
+
+    public string Accepts(string[] types)
+    {
+        var accept = new Accepts(this);
+        var _types = accept.Types(types);
+        return null == _types ? string.Empty : _types.FirstOrDefault();
     }
 
     /// <summary>
@@ -240,7 +256,7 @@ public class Request
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public string Get(string key) => _headers[key.ToLower()];
+    public string Get(string key) => Headers[key.ToLower()];
 
     /// <summary>
     /// Returns the matching content type if the incoming request’s “Content-Type” HTTP header
@@ -326,7 +342,7 @@ public class Request
         #endregion
 
         #region Headers
-        request._headers.Clear();
+        request.Headers.Clear();
         for (var i = 1; i < headerLines.Length; i++)
         {
             var headerLine = headerLines[i];
@@ -335,14 +351,14 @@ public class Request
                 throw new HttpProtocolException(500, "HeaderLine must consist of 2 parts", new ProtocolViolationException("HeaderLine must consist of 2 parts"));
 
             // header in case insensitive (see 
-            request._headers.Add(headerPair[0].ToLower(), headerPair[1]);
+            request.Headers.Add(headerPair[0].ToLower(), headerPair[1]);
         }
 
-        request.Host     = request._headers["host"];
-        request.Hostname = request._headers["host"].Split(':')[0];
+        request.Host     = request.Headers["host"];
+        request.Hostname = request.Headers["host"].Split(':')[0];
 
-        if (null != request._headers["X-Requested-With"])
-            request.Xhr = request._headers["X-Requested-With"]!.Equals("XMLHttpRequest");
+        if (null != request.Headers["X-Requested-With"])
+            request.Xhr = request.Headers["X-Requested-With"]!.Equals("XMLHttpRequest");
 
         #endregion
 

@@ -9,6 +9,8 @@ public class MessageBodyStreamReader : Stream
 
     private long _length = 0;
 
+    public string FileName;
+
     public MessageBodyStreamReader(Stream inner)
     {
         _inner = inner;
