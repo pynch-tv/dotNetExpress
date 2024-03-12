@@ -36,7 +36,7 @@ public class ServerResponse
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
-    public string GetHeader(string field)
+    protected string GetHeader(string field)
     {
         return _headers[field];
     }
@@ -45,13 +45,13 @@ public class ServerResponse
     /// Boolean property that indicates if the app sent HTTP headers for the response.
     /// Boolean (read-only). True if headers were sent, false otherwise.
     /// </summary>
-    public bool HeadersSent { get; protected set; }
+    protected bool HeadersSent { get; set; }
 
     /// <summary>
     /// When true, the Date header will be automatically generated and sent in
     /// the response if it is not already present in the headers. Defaults to true.
     /// </summary>
-    public void SendDate(bool sendDate = true)
+    protected void SendDate(bool sendDate = true)
     {
         _sendDate = sendDate;
     }
@@ -62,7 +62,7 @@ public class ServerResponse
     /// <param name="field"></param>
     /// <param name="value"></param>
     /// <returns></returns>
-    public void SetHeader(string field, string value)
+    protected void SetHeader(string field, string value)
     {
         _headers[field] = value;
     }
@@ -74,7 +74,7 @@ public class ServerResponse
     /// are the respective header values. All header names are lowercase.
     /// </summary>
     /// <returns>NameValueCollection</returns>
-    public NameValueCollection GetHeader()
+    protected NameValueCollection GetHeader()
     {
         return _headers;
     }
@@ -84,7 +84,7 @@ public class ServerResponse
     /// All header names are lowercase.
     /// </summary>
     /// <returns></returns>
-    public string[] GetHeaderNames()
+    protected string[] GetHeaderNames()
     {
         return _headers.AllKeys;
     }
@@ -95,7 +95,7 @@ public class ServerResponse
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    public bool HasHeader(string name)
+    protected bool HasHeader(string name)
     {
         return _headers.Cast<string>().Any(header => header.Equals(name, StringComparison.OrdinalIgnoreCase));
     }
@@ -105,7 +105,7 @@ public class ServerResponse
     /// </summary>
     /// <param name="buffer"></param>
     /// <param name="encoding"></param>
-    public bool Write(string buffer, Encoding encoding = null)
+    protected bool Write(string buffer, Encoding encoding = null)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
@@ -128,7 +128,7 @@ public class ServerResponse
         return true;
     }
 
-    public bool Write(byte[] buffer, int length)
+    protected bool Write(byte[] buffer, int length)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
@@ -164,17 +164,17 @@ public class ServerResponse
     /// a human-readable statusMessage as the second argument.
     /// </summary>
 
-    protected virtual void WriteHead(HttpStatusCode statusCode)
+    public virtual void WriteHead(HttpStatusCode statusCode)
     {
         WriteHead(statusCode, statusCode.ToString());
     }
 
-    protected virtual void WriteHead(HttpStatusCode statusCode, NameValueCollection headers = null)
+    public virtual void WriteHead(HttpStatusCode statusCode, NameValueCollection headers = null)
     {
         WriteHead(statusCode, statusCode.ToString(), headers);
     }
 
-    protected virtual void WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection headers = null)
+    public virtual void WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection headers = null)
     {
         var headerContent = new StringBuilder();
 
@@ -235,11 +235,13 @@ public class ServerResponse
     public void End()
     {
         if (_chunked)
-            Write($"0\r\n\r\n");
+            Write($"0");
+
+        Write($"\r\n\r\n");
 
         // TODO: What to do here???
-        if (true)
-            _stream.Close();
+        //if (true)
+        //    _stream.Close();
     }
 
 }

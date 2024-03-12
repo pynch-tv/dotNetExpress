@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.IO.Pipes;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -99,7 +101,7 @@ public class Response : ServerResponse
     }
 
     /// <summary>
-    ///  Transfers the file at path as an “attachment”. Typically, browsers will prompt
+    /// Transfers the file at path as an “attachment”. Typically, browsers will prompt
     /// the user for download. By default, the Content-Disposition header “filename=”
     /// parameter is derived from the path argument, but can be overridden with the
     /// filename parameter. If path is relative, then it will be based on the current
@@ -118,14 +120,25 @@ public class Response : ServerResponse
         var type = Mime.GetType(ext);
 
         // set Content-Disposition when file is sent
-        var headers = new NameValueCollection();
-        headers["Content-Disposition"] = $"attachment; filename=\"{filename}\"";
-        headers["Content-Type"] = type;
-
-        // merge user-provided headers
-        options.Headers.Add(headers);
+        Attachment(path);
 
         throw new NotImplementedException();
+        /*
+                const int bufferSize = 16 * 1024; // 16KB buffer size
+                var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+                try
+                {
+                    int bytesRead;
+                    while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
+                    {
+                        this.Write(buffer, bytesRead);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+        */
     }
 
     /// <summary>
@@ -167,7 +180,7 @@ public class Response : ServerResponse
 
         Type("application/json");
 
-        Send(jsonString);
+        End(jsonString);
     }
 
     /// <summary>
@@ -282,22 +295,46 @@ public class Response : ServerResponse
         if (!HasHeader("Content-Length"))
             Set("Content-Length", body.Length);
 
-        Write(body, Encoding.UTF8);
+        End(body, Encoding.UTF8);
     }
 
     public void Send(object body)
     {
         throw new NotSupportedException();
+        End();
     }
 
     public void Send(bool body)
     {
         throw new NotSupportedException();
+        End();
     }
 
     public void Send(byte[] buffer)
     {
         Write(buffer, buffer.Length);
+
+        End();
+    }
+
+    public void Send(Stream stream)
+    {
+        const int bufferSize = 16 * 1024; // 16KB buffer size
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+            int bytesRead;
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
+            {
+                this.Write(buffer, bytesRead);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        End();
     }
 
     /// <summary>
@@ -334,26 +371,13 @@ public class Response : ServerResponse
         if (options.LastModified)
             _headers.Add(new NameValueCollection() { { "Last-Modified", file.LastWriteTime.ToUniversalTime().ToString("r") } });
 
-        // construct/append headers
-        if (App.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
-            Set("X-Powered-By", "dotNetExpress");
-        if (App.Listener.KeepAlive)
-        {
-            Set("Connection", "keep-alive");
-            Set("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
-        }
-        else
-            Set("Connection", "close");
-        Set("Content-Length", file.Length.ToString());
-
         WriteHead(_httpStatusCode);
 
-        // send content (if any)
-        if (file.Length <= 0) return;
-
         var fileStream = File.OpenRead(path);
-        fileStream.CopyTo(this._stream);
-        fileStream.Close();
+        Send(fileStream);
+
+        //fileStream.CopyTo(this._stream);
+        //fileStream.Close();
     }
 
     /// <summary>
@@ -449,18 +473,21 @@ public class Response : ServerResponse
 
     #region Override methods
 
-    protected override void WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
+    public override void WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
     {
         if (App.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
             SetHeader("X-Powered-By", "dotNetExpress");
 
-        if (App.Listener.KeepAlive)
+        if (statusCode != HttpStatusCode.SwitchingProtocols)
         {
-            SetHeader("Connection", "keep-alive");
-            SetHeader("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
+            if (App.Listener.KeepAlive)
+            {
+                SetHeader("Connection", "keep-alive");
+                SetHeader("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
+            }
+            else
+                SetHeader("Connection", "Close");
         }
-        else
-            SetHeader("Connection", "Close");
 
         base.WriteHead(statusCode, statusMessage, headers);
     }

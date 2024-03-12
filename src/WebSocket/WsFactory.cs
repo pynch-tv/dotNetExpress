@@ -8,8 +8,6 @@ namespace dotNetExpress;
 
 public static class WsFactory
 {
-    private static readonly List<WebSocket> _webSockets = new();
-
     /// <summary>
     /// 
     /// </summary>
@@ -47,12 +45,7 @@ public static class WsFactory
         res.Set("Upgrade", "WebSocket");
         res.Set("Connection", "Upgrade");
         res.Set("Sec-WebSocket-Accept", WsFactory.HashKey(key));
-        res.Status(HttpStatusCode.SwitchingProtocols);
-        res.End();
 
-        //lock (_webSockets)
-        //{
-        //    _webSockets.Add(new WsClient(this, tcpClient.Client));
-        //}
+        res.WriteHead(HttpStatusCode.SwitchingProtocols);
     }
 }

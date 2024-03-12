@@ -31,7 +31,7 @@ public class WsServer
         }
     }
 
-    public void SendText(string text)
+    public static void SendText(string text)
     {
         if (string.IsNullOrEmpty(text)) return;
 
