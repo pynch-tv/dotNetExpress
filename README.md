@@ -1,4 +1,4 @@
-# .NetExpress
+# .net Express
 
 ## Getting started
 
