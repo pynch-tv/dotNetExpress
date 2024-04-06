@@ -11,7 +11,6 @@ internal partial class Examples
 
         app.Get("/next", (req, res, next) =>
         {
-            next?.Invoke(new Exception("BROKEN"));
         });
 
         app.Listen(port, () =>

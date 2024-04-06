@@ -11,11 +11,11 @@ internal partial class Examples
 
         var __dirname = Directory.GetCurrentDirectory();
 
-        app.Engine("md", path =>
-        {
-            var text = File.ReadAllText("textFile");
-            //    var html = marked.parse(str).replace(/\{ ([^}]+)\}/g, function(_, name)
-        });
+        //app.Engine("md", path =>
+        //{
+        //    var text = File.ReadAllText("textFile");
+        //    //    var html = marked.parse(str).replace(/\{ ([^}]+)\}/g, function(_, name)
+        //});
 
         app.Set("views", Path.Combine(__dirname, "views"));
 
