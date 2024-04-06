@@ -1,6 +1,4 @@
-﻿using System.Net;
-
-namespace dotNetExpress.examples;
+﻿namespace dotNetExpress.examples;
 
 internal partial class Examples
 {

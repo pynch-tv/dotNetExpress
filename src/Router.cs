@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
