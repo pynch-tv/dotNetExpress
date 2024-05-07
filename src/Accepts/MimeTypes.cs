@@ -1,4 +1,7 @@
-﻿namespace dotNetExpress.Lookup;
+﻿using System;
+using System.Collections.Generic;
+
+namespace dotNetExpress.Lookup;
 
 internal class MimeTypes
 {

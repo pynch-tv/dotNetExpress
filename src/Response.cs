@@ -1,11 +1,14 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
-
 
 namespace dotNetExpress;
 
@@ -171,7 +174,12 @@ public class Response : ServerResponse
     /// <param name="body"></param>
     public void Json(dynamic body)
     {
-        var jsonString = JsonSerializer.Serialize(body);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var jsonString = JsonSerializer.Serialize(body, options);
 
         Type("application/json");
 

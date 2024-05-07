@@ -1,6 +1,11 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
+using static dotNetExpress.Lookup.Negotiator;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace dotNetExpress.Lookup;
 
@@ -9,6 +14,16 @@ internal class Negotiator
     private Request _req;
 
     private const string SimpleMediaTypeRegExp = @"^\s*([^\s\/;]+)\/([^;\s]+)\s*(?:;(.*))?$";
+
+    private bool IsQuality(AcceptsMediaType spec)
+    {
+        return spec.q > 0;
+    }
+
+    //private bool CompareSpecs(AcceptsMediaType a, AcceptsMediaType b)
+    //{
+    //    return (b.q - a.q) ;//|| (b.subtype - a.subtype) || (a.o - b.o) || (a.i - b.i) || 0;
+    //}
 
     /// <summary>
     /// 
@@ -40,6 +55,9 @@ internal class Negotiator
 
         if (null == provided)
         {
+            accepts = Array.FindAll(accepts, IsQuality);
+           // Array.Sort(accepts, CompareSpecs);
+
             // sorted list of all types
             //return accepts
             //    .filter(isQuality)
@@ -47,11 +65,13 @@ internal class Negotiator
             //    .map(getFullType);
         }
 
-        var priorities = provided.Select(
-            (type, index) => GetMediaTypePriority(type, accepts, index));
+        var priorities = provided.Select((type, index) => GetMediaTypePriority(type, accepts, index));
 
         var qualityPriorities = priorities.Where(spec => spec.q > 0).ToList();
-        qualityPriorities.Sort(Comparison);
+        qualityPriorities = qualityPriorities.OrderByDescending(smt => smt.q)
+            .ThenByDescending(smt => smt.s)
+            .ThenByDescending(smt => smt.o)
+            .ThenBy(smt => smt.i).ToList();
 
         // take only type
         return qualityPriorities.Select((type, index) => type.type).ToArray();
@@ -59,7 +79,14 @@ internal class Negotiator
     
     private int Comparison(SpecificMediaType a, SpecificMediaType b)
     {
-        return (int)getNonZero(new[] { b.q - a.q, b.s - a.s, a.o - b.o, a.i - b.i, 0 });
+        return b.q > a.q ? 1 : -1;
+        //var s = b.s - a.s;
+        //var o = a.o - b.o;
+        //var i = a.i - b.i;
+
+
+
+        //return (int)getNonZero(new[] { b.q - a.q, b.s - a.s, a.o - b.o, a.i - b.i, 0 });
         //return yy switch
         //{
         //    < 0 => -1,

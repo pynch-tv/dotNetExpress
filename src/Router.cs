@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
@@ -145,6 +148,8 @@ public class Router
         {
             if (router.Dispatch(req, res))
                 return true;
+
+            res.Status(404).End();
         }
 
         if (null != _catchAll)

@@ -1,4 +1,7 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Specialized;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -161,6 +164,11 @@ public class ServerResponse
     /// a human-readable statusMessage as the second argument.
     /// </summary>
 
+    private void WriteHead()
+    {
+        WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+    }
+
     public virtual void WriteHead(HttpStatusCode statusCode)
     {
         WriteHead(statusCode, statusCode.ToString());
@@ -232,9 +240,12 @@ public class ServerResponse
     public void End()
     {
         if (_chunked)
-            Write($"0");
+            Write($"0\r\n\r\n");
 
-        Write($"\r\n\r\n");
+        if (!HeadersSent)
+            WriteHead();
+
+        //Write($"\r\n\r\n");
 
         // TODO: What to do here???
         //if (true)

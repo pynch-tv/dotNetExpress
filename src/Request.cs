@@ -1,5 +1,8 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Specialized;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
 using dotNetExpress.Overrides;
@@ -309,6 +312,8 @@ public class Request
     {
         // create out variable
         request = new Request(app);
+
+        if (headerLines.Length == 0) return false;
 
         #region First line : Method url Protocol
         var requestLine = headerLines[0];
