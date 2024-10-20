@@ -5,7 +5,9 @@ using System.Collections.Specialized;
 using System.Threading;
 using dotNetExpress.Options;
 using dotNetExpress.Delegates;
-using dotNetExpress.Middlewares;
+using dotNetExpress.Exceptions;
+using Pynch.Nexa.Tools.Express.Middlewares.BodyParser;
+using Pynch.Nexa.Tools.Express.Middlewares.ServerStatic;
 
 namespace dotNetExpress;
 
@@ -40,7 +42,11 @@ public class Express : IDisposable
 
         // Environment mode. Be sure to set to "production" in a production environment;
         // see Production best practices: performance and reliability.	
+#if DEBUG
         Set("env", "development");
+#else
+        Set("env", "production");
+#endif
 
         // Set the ETag response header. For possible values, see the etag options table.
         Set("etag", "weak");
@@ -145,14 +151,31 @@ public class Express : IDisposable
     /// </summary>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public static MiddlewareCallback Json()
+    public static MiddlewareCallback Json(jsonOptions options = null)
     {
         return BodyParser.ParseJson;
     }
 
-    public static MiddlewareCallback Json(jsonOptions options = null)
+    /// <summary>
+    /// This is a built-in middleware function in Express. It parses 
+    /// incoming requests with urlencoded payloads and is based on body-parser.
+    ///
+    /// Returns middleware that only parses urlencoded bodies and only looks 
+    /// at requests where the Content-Type header matches the type option. This
+    /// parser accepts only UTF-8 encoding of the body and supports automatic 
+    /// inflation of gzip and deflate encodings.
+    /// 
+    /// A new body object containing the parsed data is populated on the request
+    /// object after the middleware(i.e.req.body), or an empty object ({}) if
+    /// there was no body to parse, the Content-Type was not matched, or an
+    /// error occurred.This object will contain key-value pairs, where the value
+    /// can be a string or array(when extended is false), or any type(when extended is true).
+    /// </summary>
+    /// <param name="options"></param>
+    /// <returns></returns>
+    public static MiddlewareCallback UrlEncoded(urlEncodedOptions options = null)
     {
-        return BodyParser.ParseJson;
+        return BodyParser.ParseUrlEncoded;
     }
 
     /// <summary>
@@ -178,10 +201,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    internal Router Router(RouterOptions options = null)
-    {
-        return new Router(options);
-    }
+    internal virtual Router Router(RouterOptions options = null) => new(options);
 
     /// <summary>
     /// This is a built-in middleware function in Express. It parses incoming request payloads into a Buffer and is based on body-parser.
@@ -212,7 +232,7 @@ public class Express : IDisposable
     /// <returns></returns>
     public static MiddlewareCallback Urlencoded()
     {
-        return BodyParser.ParseUrlencoded;
+        return BodyParser.ParseUrlEncoded;
     }
 
     #endregion
@@ -226,7 +246,7 @@ public class Express : IDisposable
     public NameValueCollection locals => _locals;
 
     /// <summary>
-    /// The app.mountpath property contains one or more path patterns on which a sub-app was mounted.
+    /// The app.MountPath property contains one or more path patterns on which a sub-app was mounted.
     /// </summary>
     public string MountPath;
 
@@ -273,7 +293,6 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="key"></param>
     public void Disable(string key) => _settings[key] = "false";
-
 
     /// <summary>
     /// Returns true if the Boolean setting name is disabled (false), where name is one of
@@ -453,7 +472,7 @@ public class Express : IDisposable
             throw new ArgumentNullException("view engine not Set");
         var viewEngine = _engines[viewEngineName];
         if (null == viewEngine)
-            throw new KeyNotFoundException($"engine {viewEngine} not found");
+            throw new ExpressException(HttpStatusCode.NotFound, "Engine not found", $"engine {viewEngine} not found");
 
         return viewEngine(view, locals);
     }

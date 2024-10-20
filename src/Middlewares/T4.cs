@@ -28,11 +28,11 @@ public class TemplateEngine
             throw new FileNotFoundException($"dll {filename} not found in {__dirname}");
         var type = asm.GetType($"Pynch.Nexa.T4.Views.{view}");
         if (null == type)
-            throw new ExpressException(500, $"TypeOf(Pynch.Nexa.T4.Views.{view} not found");
+            throw new ExpressException(500, "Not found", $"TypeOf(Pynch.Nexa.T4.Views.{view} not found");
 
         dynamic template = Activator.CreateInstance(type);
         if (null == template)
-            throw new ExpressException(500, $"Unable to create instance of {type}");
+            throw new ExpressException(500, "template is null",  $"Unable to create instance of {type}");
 
         return template.TransformText(locals);
     }

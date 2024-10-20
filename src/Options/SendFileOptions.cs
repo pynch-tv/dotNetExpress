@@ -7,7 +7,7 @@ public class SendFileOptions
     /// <summary>
     /// Set the max-age property of the Cache-Control header in milliseconds or a string in ms format.	
     /// </summary>
-    public int MaxAge = 0;
+    public int MaxAge;
 
     /// <summary>
     /// Root directory for relative filenames.
@@ -43,7 +43,7 @@ public class SendFileOptions
     /// <summary>
     /// Enable or disable the immutable directive in the Cache-Control response header. If enabled, the maxAge option should also be specified to enable caching. The immutable directive will prevent supported clients from making conditional requests during the life of the maxAge option to check if the file has changed.	
     /// </summary>
-    public bool Immutable = false;
+    public bool Immutable;
 
     /// <summary>
     /// 

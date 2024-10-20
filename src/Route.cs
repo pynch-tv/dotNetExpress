@@ -24,4 +24,15 @@ public class Route
         Path = path;
         Middlewares = middlewares;
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middlewares"></param>
+    public Route(string path, MiddlewareCallback[] middlewares)
+    {
+        Path = path;
+        Middlewares = middlewares;
+    }
 }

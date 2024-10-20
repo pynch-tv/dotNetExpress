@@ -7,8 +7,11 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
+using Pynch.Nexa.Tools.Types;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace dotNetExpress;
 
@@ -164,6 +167,33 @@ public class Response : ServerResponse
         return _headers[field];
     }
 
+    #region Json Serialization helpers
+    class IPAddressConverter : JsonConverter<IPAddress>
+    {
+        public override IPAddress Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return IPAddress.TryParse(reader.GetString(), out var ip) ? ip : null;
+        }
+        public override void Write(Utf8JsonWriter writer, IPAddress value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.ToString());
+        }
+    }
+
+    class TimeSpanConverter : JsonConverter<System.TimeSpan>
+    {
+        public override System.TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return System.TimeSpan.TryParse(reader.GetString(), out var ts) ? ts : System.TimeSpan.Zero;
+        }
+        public override void Write(Utf8JsonWriter writer, System.TimeSpan value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.ToString());
+        }
+    }
+
+    #endregion
+
     /// <summary>
     /// Sends a JSON response. This method sends a response (with the correct content-type)
     /// that is the parameter converted to a JSON string.
@@ -176,14 +206,15 @@ public class Response : ServerResponse
     {
         var options = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new IPAddressConverter(), new TimeSpanConverter(), new VideoFormatConverter() }
         };
 
         var jsonString = JsonSerializer.Serialize(body, options);
 
         Type("application/json");
 
-        End(jsonString);
+        Send(jsonString);
     }
 
     /// <summary>
@@ -234,7 +265,7 @@ public class Response : ServerResponse
             }
 
             // Set of append the Link header
-            this.Set("Link", value);
+            Set("Link", value);
         }
     }
 
@@ -255,9 +286,9 @@ public class Response : ServerResponse
     }
 
     /// <summary>
-    /// Redirects to the URL derived from the specified path, with specified status,
-    /// a positive integer that corresponds to an HTTP status code . If not specified,
-    /// status defaults to “302 “Found”.
+    /// Redirects to the URL derived from the specified path, with specified Status,
+    /// a positive integer that corresponds to an HTTP Status code . If not specified,
+    /// Status defaults to “302 “Found”.
     /// </summary>
     /// <param name="path"></param>
     public void Redirect(string path)
@@ -295,10 +326,12 @@ public class Response : ServerResponse
     /// <returns></returns>
     public void Send(string body = null)
     {
+        if (body == null) return;
+
         if (!HasHeader("Content-Length"))
             Set("Content-Length", body.Length);
 
-        End(body, Encoding.UTF8);
+        Send(Encoding.Default.GetBytes(body));
     }
 
     public void Send(object body)
@@ -317,7 +350,7 @@ public class Response : ServerResponse
     {
         Write(buffer, buffer.Length);
 
-        End();
+    //    End();
     }
 
     public void Send(Stream stream)
@@ -329,7 +362,7 @@ public class Response : ServerResponse
             int bytesRead;
             while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
             {
-                this.Write(buffer, bytesRead);
+                Write(buffer, bytesRead);
             }
         }
         finally
@@ -384,8 +417,8 @@ public class Response : ServerResponse
     }
 
     /// <summary>
-    /// Sets the response HTTP status code to statusCode and sends the registered status
-    /// message as the text response body. If an unknown status code is specified,
+    /// Sets the response HTTP Status code to statusCode and sends the registered Status
+    /// message as the text response body. If an unknown Status code is specified,
     /// the response body will just be the code number.
     /// </summary>
     /// <param name="code"></param>
@@ -400,7 +433,7 @@ public class Response : ServerResponse
     }
 
     /// <summary>
-    /// Sets the HTTP status for the response. It is a chainable alias
+    /// Sets the HTTP Status for the response. It is a chainable alias
     /// </summary>
     /// <param name="code"></param>
     /// <returns></returns>
@@ -486,7 +519,7 @@ public class Response : ServerResponse
             if (App.Listener.KeepAlive)
             {
                 SetHeader("Connection", "keep-alive");
-                SetHeader("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in seconds
+                SetHeader("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in *seconds*
             }
             else
                 SetHeader("Connection", "Close");

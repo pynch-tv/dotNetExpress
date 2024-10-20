@@ -3,25 +3,18 @@ using System.Net;
 
 namespace dotNetExpress.Exceptions;
 
-public class ExpressException : Exception
+public class ExpressException(HttpStatusCode status, string title, string detail) : Exception
 {
-    public HttpStatusCode StatusCode;
-    public string Description;
+    public HttpStatusCode Status = status;
+    public string Detail = detail;
+    public string Title = title;
 
-    public ExpressException(HttpStatusCode statusCode, string description)
+    public ExpressException(uint status, string title, string detail) : this((HttpStatusCode)status, title, detail)
     {
-        StatusCode = statusCode;
-        Description = description;
-    }
-
-    public ExpressException(uint statusCode, string description)
-    {
-        StatusCode = (HttpStatusCode)statusCode;
-        Description = description;
     }
 
     public dynamic toJson()
     {
-        return new { code = StatusCode, description = Description };
+        return new { status = Status, title = Title, detail = Detail };
     }
 }

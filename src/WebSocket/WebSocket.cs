@@ -51,6 +51,9 @@ public partial class WebSocket
             var messageBuffer = new byte[MessageBufferSize];
             var bytesReceived = GetSocket().Receive(messageBuffer);
 
+            if (bytesReceived > 0) 
+                return;
+
             // Resize the byte array to remove whitespaces 
             if (bytesReceived < messageBuffer.Length) Array.Resize(ref messageBuffer, bytesReceived);
 

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
+using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
@@ -12,7 +13,7 @@ public class Router
 {
     public string MountPath = string.Empty;
 
-    private Router _parent = null;
+    private Router _parent;
 
     private readonly List<ErrorCallback> _errorHandler = new();
 
@@ -22,9 +23,9 @@ public class Router
 
     private readonly Dictionary<string, Router> _routers = new();
 
-    private MiddlewareCallback _catchAll = null;
+    private MiddlewareCallback _catchAll;
 
-    private RouterOptions _options;
+    private readonly RouterOptions _options;
 
     private bool _gotoNext;
 
@@ -38,15 +39,20 @@ public class Router
         _options = options;
     }
 
+
     /// <summary>
     /// 
     /// </summary>
     /// <param name="leftPath"></param>
     /// <param name="req"></param>
     /// <returns></returns>
-    private static bool Match(string leftPath, Request req)
+    private bool Match(string leftPath, Request req)
     {
-        var leftSubDirs = leftPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (_options.Strict && req.Path.EndsWith($"/")) return false;
+
+        // RemoveEmptyEntries also remove blank entries at the start of the SubDirs array,
+        // making the parsing slightly faster.
+        var leftSubDirs  = leftPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         var rightSubDirs = req.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
         if (leftSubDirs.Length != rightSubDirs.Length) return false;
@@ -63,13 +69,24 @@ public class Router
 
                 if (leftSubDirs[i][..leftIndex] != rightStart) return false;
 
-                req.Params[leftSubDirs[i][++leftIndex..]] = WebUtility.UrlDecode(rightEnd);
+                req.Params[leftSubDirs[i][++leftIndex..]] = Uri.UnescapeDataString(rightEnd);
             }
-            else if (leftSubDirs[i] != rightSubDirs[i]) 
+            else if (leftSubDirs[i].IndexOfAny(['?', '*', '$', '(', ')']) >= 0) // check for regular expression pattern 
+            {
+                if (!Regex.IsMatch(rightSubDirs[i], WildCardToRegular(leftSubDirs[i])))
+                    return false;
+            }
+            else if (_options.CaseSensitive ? !leftSubDirs[i].Equals(rightSubDirs[i], StringComparison.Ordinal) : !leftSubDirs[i].Equals(rightSubDirs[i], StringComparison.CurrentCultureIgnoreCase)) 
                 return false;
         }
 
         return true;
+
+        static string WildCardToRegular(string value)
+        {
+            // TODO: needs additional work
+            return "^" + Regex.Escape(value).Replace("\\?", ".").Replace("\\*", ".*") + "$";
+        }
     }
 
     /// <summary>
@@ -94,14 +111,9 @@ public class Router
         }
         if (!_gotoNext) return true;
 
-        for (var index = 0; index < _routes.Count; index++)
+        foreach (var route in _routes.Where(route => (route.Method == req.Method || route.Method == null)).Where(route => Match(route.Path, req)))
         {
-            var route = _routes[index];
-
-            if (route.Method != req.Method) continue;
-            if (!Match(route.Path, req)) continue;
-
-            req.BaseUrl = this.MountPath;
+            req.BaseUrl = MountPath;
 
             foreach (var middleware in route.Middlewares)
             {
@@ -114,19 +126,20 @@ public class Router
                             throw next;
                         _gotoNext = true;
                     });
+
+                    if (!_gotoNext)
+                        break;
                 }
                 catch (ExpressException e)
                 {
-                    res.Status(e.StatusCode);
-
                     foreach (var errorCallback in _errorHandler)
                     {
                         errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
                         if (!_gotoNext) break;
                     }
 
-                    res.Status(e.StatusCode).Json(e.toJson());
-                    return false;
+                    res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
+                    return true;
                 }
                 catch (Exception e)
                 {
@@ -136,8 +149,8 @@ public class Router
                         if (!_gotoNext) break;
                     }
 
-                    res.Status(500).Json(new { code = 500, description = e.Message });
-                    return false;
+                    res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
+                    return true;
                 }
             }
 
@@ -149,16 +162,15 @@ public class Router
             if (router.Dispatch(req, res))
                 return true;
 
-            res.Status(404).End();
+            res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" }); 
         }
 
-        if (null != _catchAll)
-        {
-            _catchAll(req, res);
-            return true;
-        }
+        if (null == _catchAll) return false;
 
-        return false;
+        _catchAll(req, res);
+
+        return true;
+
     }
 
     #region Methods
@@ -172,9 +184,23 @@ public class Router
     /// that these callbacks do not have to act as end points; loadUser can perform a task, then call next() to
     /// continue matching subsequent routes.
     /// </summary>
-    public void All(string path, params MiddlewareCallback[] args)
+    public void All(string path, params MiddlewareCallback[] middlewares)
     {
-        throw new NotImplementedException();
+        // paths should not end with / (unless it is the landing page)
+        if (path.EndsWith("/") && path != "/")
+            return;
+
+        if (path == "/") path = "";
+        if (MountPath == "/") MountPath = "";
+
+        if (!path.StartsWith('/')) path = "/" + path;
+
+        path = MountPath + path;
+        path = path.Trim();
+
+        var route = new Route(path, middlewares);
+
+        _routes.Add(route);
     }
 
     /// <summary>
@@ -187,12 +213,14 @@ public class Router
     // ReSharper disable once InconsistentNaming
     private void METHOD(HttpMethod method, string path, MiddlewareCallback[] middlewares)
     {
+        // paths should not end with / (unless it is the landing page)
+        if (path.EndsWith("/") && path != "/")
+            return;
+        
         if (path == "/") path = "";
         if (MountPath == "/") MountPath = "";
 
-        if (!path.StartsWith('/')) path = "/" + path;
-
-        path = MountPath + path;
+        path = MountPath + (string.IsNullOrEmpty(path) ? "" : path);
         path = path.Trim();
 
         var route = new Route(method, path, middlewares);
@@ -258,15 +286,6 @@ public class Router
     public void Patch(string path, params MiddlewareCallback[] middleware)
     {
         METHOD(HttpMethod.Patch, path, middleware );
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="middleware"></param>
-    public void Any(MiddlewareCallback middleware)
-    {
-        _catchAll = middleware;
     }
 
     /// <summary>

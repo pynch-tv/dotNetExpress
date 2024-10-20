@@ -43,7 +43,7 @@ public static class WsFactory
 
         res.Set("Upgrade", "WebSocket");
         res.Set("Connection", "Upgrade");
-        res.Set("Sec-WebSocket-Accept", WsFactory.HashKey(key));
+        res.Set("Sec-WebSocket-Accept", HashKey(key));
 
         res.WriteHead(HttpStatusCode.SwitchingProtocols);
     }

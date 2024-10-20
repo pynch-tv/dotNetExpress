@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
@@ -19,7 +20,7 @@ public class Request
     /// <param name="app"></param>
     public Request(Express app)
     {
-        this.App = app;
+        App = app;
     }
 
     #region Properties
@@ -43,7 +44,7 @@ public class Request
     /// it is undefined, and is populated when you use body-parsing middleware such as
     /// express.json() or express.urlencoded().
     /// </summary>
-    public string Body = null;
+    public dynamic Body = null;
 
     /// <summary>
     /// When using cookie-parser middleware, this property is an object that contains
@@ -242,7 +243,7 @@ public class Request
     /// Returns the first accepted language of the specified languages, based on the request’s
     /// Accept-Language HTTP header field. If none of the specified languages is accepted, returns false.
     /// </summary>
-    /// <param name="encoding"></param>
+    /// <param name="lang"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
     public string AcceptsLanguages(string lang)
@@ -290,10 +291,7 @@ public class Request
     /// The options parameter is an object that can have the following properties.
     /// </summary>
     /// <returns></returns>
-    public Range Range(int size, RangeOptions options = null)
-    {
-        return new Range();
-    }
+    public Range Range(int size, RangeOptions options = null) => new();
 
     #endregion
 
@@ -308,18 +306,25 @@ public class Request
     /// <param name="headerLines"></param>
     /// <param name="request"></param>
     /// <returns></returns>
-    internal static bool TryParse(Express app, string[] headerLines, out Request request)
+    internal static bool TryParse(Express app, IEnumerable<string> headerLines, out Request request)
     {
         // create out variable
         request = new Request(app);
 
-        if (headerLines.Length == 0) return false;
+        if (!headerLines.Any()) return false;
+
+        using var enumerator = headerLines.GetEnumerator();
+        enumerator.MoveNext();
 
         #region First line : Method url Protocol
-        var requestLine = headerLines[0];
+
+        var requestLine = enumerator.Current;
+        if (null == requestLine) return false;
+
         var requestLineParts = requestLine.Split(' ');
         if (requestLineParts.Length != 3)
-            throw new HttpProtocolException(500, "First line must consists of 3 parts", new ProtocolViolationException("First line must consists of 3 parts"));
+            throw new HttpProtocolException(500, "First line must consists of 3 parts",
+                new ProtocolViolationException("First line must consists of 3 parts"));
 
         request.Method = HttpMethod.Parse(requestLineParts[0]);
         request.OriginalUrl = new Uri(requestLineParts[1], UriKind.Relative);
@@ -331,8 +336,10 @@ public class Request
             {
                 var queryParts = query.Split('=', StringSplitOptions.RemoveEmptyEntries);
                 if (queryParts.Length != 2) throw new UriFormatException($"Query part is malformatted: {query}");
-                request.Query.Add(queryParts[0], queryParts[1]);
+
+                request.Query.Add(queryParts[0], Uri.UnescapeDataString(queryParts[1]));
             }
+
             request.Path = requestLineParts[1][..idx];
         }
         else
@@ -341,23 +348,28 @@ public class Request
         idx = requestLineParts[2].IndexOf('/');
         request.Protocol = requestLineParts[2][..idx].ToLower();
         request.HttpVersion = new Version(requestLineParts[2][++idx..]);
+
         #endregion
 
         #region Headers
+
         request.Headers.Clear();
-        for (var i = 1; i < headerLines.Length; i++)
+        while (enumerator.MoveNext())
         {
-            var headerLine = headerLines[i];
+            var headerLine = enumerator.Current;
+            if (null == headerLine) continue;
+
             var headerPair = headerLine.Split(":", 2, StringSplitOptions.TrimEntries);
             if (headerPair.Length != 2)
-                throw new HttpProtocolException(500, "HeaderLine must consist of 2 parts", new ProtocolViolationException("HeaderLine must consist of 2 parts"));
+                throw new HttpProtocolException(500, "HeaderLine must consist of 2 parts",
+                    new ProtocolViolationException("HeaderLine must consist of 2 parts"));
 
             // header in case insensitive (see 
-            request.Headers.Add(headerPair[0].ToLower(), headerPair[1]);
+            request.Headers.Add(headerPair[0].Trim().ToLower(), headerPair[1].Trim());
         }
 
-        request.Host     = request.Headers["host"];
-        request.Hostname = request.Headers["host"].Split(':')[0];
+        request.Host = request.Headers["host"];
+        request.Hostname = request.Headers["host"]?.Split(':')[0];
 
         if (null != request.Headers["X-Requested-With"])
             request.Xhr = request.Headers["X-Requested-With"]!.Equals("XMLHttpRequest");

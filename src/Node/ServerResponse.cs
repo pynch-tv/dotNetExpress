@@ -14,7 +14,7 @@ public class ServerResponse
 
     protected bool _sendDate = true;
 
-    protected bool _chunked = false;
+    protected bool _chunked;
 
     protected HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
@@ -117,11 +117,10 @@ public class ServerResponse
         var body = encoding.GetBytes(buffer);
         var bodyLength = encoding.GetByteCount(buffer);
 
-        if (bodyLength > 0)
-        {
-            _stream.Write(body, 0, bodyLength);
-            _stream.Flush();
-        }
+        if (bodyLength <= 0) return true;
+
+        _stream.Write(body, 0, bodyLength);
+        _stream.Flush();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
@@ -151,7 +150,7 @@ public class ServerResponse
         if (_chunked)
             _stream.Write(new byte[] {0xd, 0xa}, 0, 2);
 
-        _stream.Flush();
+      //  _stream.Flush();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
@@ -159,7 +158,7 @@ public class ServerResponse
     }
 
     /// <summary>
-    /// Sends a response header to the request. The status code is a 3-digit HTTP status code,
+    /// Sends a response header to the request. The Status code is a 3-digit HTTP Status code,
     /// like 404. The last argument, headers, are the response headers. Optionally one can give
     /// a human-readable statusMessage as the second argument.
     /// </summary>
@@ -214,7 +213,7 @@ public class ServerResponse
 
         // write out the headers in 1 write
         _stream.Write(header, 0, headerLength);
-        _stream.Flush();
+ //       _stream.Flush();
 
         HeadersSent = true;
     }
@@ -244,12 +243,6 @@ public class ServerResponse
 
         if (!HeadersSent)
             WriteHead();
-
-        //Write($"\r\n\r\n");
-
-        // TODO: What to do here???
-        //if (true)
-        //    _stream.Close();
     }
 
 }

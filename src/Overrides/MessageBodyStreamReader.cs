@@ -3,20 +3,13 @@ using System.Text;
 
 namespace dotNetExpress.Overrides;
 
-public class MessageBodyStreamReader : Stream
+public class MessageBodyStreamReader(Stream inner) : Stream
 {
-    private readonly Stream _inner;
-
-    private long _length = 0;
+    private long _length;
 
     public string FileName;
 
-    public MessageBodyStreamReader(Stream inner)
-    {
-        _inner = inner;
-    }
-
-    public override bool CanRead => _inner.CanRead;
+    public override bool CanRead => inner.CanRead;
 
     public override bool CanSeek => false;
 
@@ -24,9 +17,9 @@ public class MessageBodyStreamReader : Stream
 
     public override long Length => _length;
 
-    public override long Position { get; set; } = 0;
+    public override long Position { get; set; }
 
-    public override void Flush() => _inner.Flush();
+    public override void Flush() => inner.Flush();
 
     public override long Seek(long offset, SeekOrigin origin) { return 0; }
 
@@ -40,7 +33,7 @@ public class MessageBodyStreamReader : Stream
         if (bytesToRead == 0)
             return 0;
 
-        var bytesRead = _inner.Read(buffer, offset, bytesToRead);
+        var bytesRead = inner.Read(buffer, offset, bytesToRead);
 
         Position += bytesRead;
 
@@ -53,7 +46,7 @@ public class MessageBodyStreamReader : Stream
         var i = 0;
         for (; i < buffer.Length; i++)
         {
-            buffer[i] = (byte)_inner.ReadByte();
+            buffer[i] = (byte)inner.ReadByte();
             if (buffer[i] == '\n')
                 break;
         }
