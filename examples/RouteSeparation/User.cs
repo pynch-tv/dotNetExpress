@@ -5,24 +5,24 @@ namespace dotNetExpress.examples;
 internal class User
 {
 
-    internal static void List(Request req, Response res, NextCallback? next)
+    internal static async Task List(Request req, Response res, NextCallback? next)
     {
-        res.Send("todo");
+        await res.Send("todo");
     }
 
-    internal static void View(Request req, Response res, NextCallback? next)
+    internal static async Task View(Request req, Response res, NextCallback? next)
     {
-        res.Send("todo");
+        await res.Send("todo");
     }
 
-    internal static void Edit(Request req, Response res, NextCallback? next)
+    internal static async Task Edit(Request req, Response res, NextCallback? next)
     {
-        res.Send("todo");
+        await res.Send("todo");
     }
 
-    internal static void Update(Request req, Response res, NextCallback? next)
+    internal static async Task Update(Request req, Response res, NextCallback? next)
     {
-        res.Send("todo");
+        await res.Send("todo");
     }
 
 }

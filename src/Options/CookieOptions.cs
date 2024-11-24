@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace dotNetExpress.Options;
+﻿namespace dotNetExpress.Options;
 
 public class CookieOptions
 {

@@ -24,19 +24,15 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Represents a single file extracted from a multipart/form-data
-	///     stream.
-	/// </summary>
-	public class FilePart
+    /// <summary>
+    ///     Represents a single file extracted from a multipart/form-data
+    ///     stream.
+    /// </summary>
+    public class FilePart
 	{
 		#region Fields
 

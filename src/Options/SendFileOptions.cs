@@ -22,7 +22,7 @@ public class SendFileOptions
     /// <summary>
     /// Object containing HTTP headers to serve with the file.
     /// </summary>
-    public NameValueCollection Headers = new();
+    public NameValueCollection Headers = [];
 
     /// <summary>
     /// Option for serving dotfiles. Possible values are “allow”, “deny”, “ignore”.

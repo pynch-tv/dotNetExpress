@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.Text;
 using dotNetExpress;
 using dotNetExpress.Delegates;
 
-namespace Pynch.Nexa.Tools.Express.Middlewares.BodyParser;
+namespace dotnetExpress.Middlewares.BodyParser;
 
 public class BodyParser
 {
@@ -14,7 +13,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static void ParseJson(Request req, Response res, NextCallback next = null)
+    public static async Task ParseJson(Request req, Response res, NextCallback next = null)
     {
         if (null != req.Body)
         {   //  already parsed
@@ -49,7 +48,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static void ParseText(Request req, Response res, NextCallback next = null)
+    public static async Task ParseText(Request req, Response res, NextCallback next = null)
     {
         if (null != req.Body)
         {
@@ -78,7 +77,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static void ParseRaw(Request req, Response res, NextCallback next = null)
+    public static async Task ParseRaw(Request req, Response res, NextCallback next = null)
     {
         if (null != req.Body)
         {
@@ -112,7 +111,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static void ParseUrlEncoded(Request req, Response res, NextCallback next = null)
+    public static async Task ParseUrlEncoded(Request req, Response res, NextCallback next = null)
     {
         if (null != req.Body)
         {

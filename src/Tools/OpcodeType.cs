@@ -1,4 +1,4 @@
-﻿namespace dotNetExpress;
+﻿namespace dotNetExpress.Tools;
 
 public partial class WebSocket
 {

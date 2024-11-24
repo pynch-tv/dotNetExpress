@@ -20,68 +20,64 @@
 // <author>Jake Woods</author>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to parse a
-	///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
-	///         <c>multipart/form-data</c>
-	///     </see>
-	///     stream into it's parameters and file data.
-	/// </summary>
-	/// <remarks>
-	///     <para>
-	///         A parameter is defined as any non-file data passed in the multipart stream. For example
-	///         any form fields would be considered a parameter.
-	///     </para>
-	///     <para>
-	///         The parser determines if a section is a file or not based on the presence or absence
-	///         of the filename argument for the Content-Type header. If filename is set then the section
-	///         is assumed to be a file, otherwise it is assumed to be parameter data.
-	///     </para>
-	/// </remarks>
-	/// <example>
-	///     <code lang="C#">
-	///       Stream multipartStream = GetTheMultipartStream();
-	///       string boundary = GetTheBoundary();
-	///       var parser = new MultipartFormDataParser(multipartStream, boundary, Encoding.UTF8);
-	///
-	///       // Grab the parameters (non-file data). Key is based on the name field
-	///       var username = parser.Parameters["username"].Data;
-	///       var password = parser.parameters["password"].Data;
-	///
-	///       // Grab the first files data
-	///       var file = parser.Files.First();
-	///       var filename = file.FileName;
-	///       var filestream = file.Data;
-	///   </code>
-	///     <code lang="C#">
-	///     // In the context of WCF you can get the boundary from the HTTP
-	///     // request
-	///     public ResponseClass MyMethod(Stream multipartData)
-	///     {
-	///         // First we need to get the boundary from the header, this is sent
-	///         // with the HTTP request. We can do that in WCF using the WebOperationConext:
-	///         var type = WebOperationContext.Current.IncomingRequest.Headers["Content-Type"];
-	///
-	///         // Now we want to strip the boundary out of the Content-Type, currently the string
-	///         // looks like: "multipart/form-data; boundary=---------------------124123qase124"
-	///         var boundary = type.Substring(type.IndexOf('=')+1);
-	///
-	///         // Now that we've got the boundary we can parse our multipart and use it as normal
-	///         var parser = new MultipartFormDataParser(data, boundary, Encoding.UTF8);
-	///
-	///         ...
-	///     }
-	///   </code>
-	/// </example>
-	public class MultipartFormDataParser : IMultipartFormDataParser
+    /// <summary>
+    ///     Provides methods to parse a
+    ///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
+    ///         <c>multipart/form-data</c>
+    ///     </see>
+    ///     stream into it's parameters and file data.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A parameter is defined as any non-file data passed in the multipart stream. For example
+    ///         any form fields would be considered a parameter.
+    ///     </para>
+    ///     <para>
+    ///         The parser determines if a section is a file or not based on the presence or absence
+    ///         of the filename argument for the Content-Type header. If filename is set then the section
+    ///         is assumed to be a file, otherwise it is assumed to be parameter data.
+    ///     </para>
+    /// </remarks>
+    /// <example>
+    ///     <code lang="C#">
+    ///       Stream multipartStream = GetTheMultipartStream();
+    ///       string boundary = GetTheBoundary();
+    ///       var parser = new MultipartFormDataParser(multipartStream, boundary, Encoding.UTF8);
+    ///
+    ///       // Grab the parameters (non-file data). Key is based on the name field
+    ///       var username = parser.Parameters["username"].Data;
+    ///       var password = parser.parameters["password"].Data;
+    ///
+    ///       // Grab the first files data
+    ///       var file = parser.Files.First();
+    ///       var filename = file.FileName;
+    ///       var filestream = file.Data;
+    ///   </code>
+    ///     <code lang="C#">
+    ///     // In the context of WCF you can get the boundary from the HTTP
+    ///     // request
+    ///     public ResponseClass MyMethod(Stream multipartData)
+    ///     {
+    ///         // First we need to get the boundary from the header, this is sent
+    ///         // with the HTTP request. We can do that in WCF using the WebOperationConext:
+    ///         var type = WebOperationContext.Current.IncomingRequest.Headers["Content-Type"];
+    ///
+    ///         // Now we want to strip the boundary out of the Content-Type, currently the string
+    ///         // looks like: "multipart/form-data; boundary=---------------------124123qase124"
+    ///         var boundary = type.Substring(type.IndexOf('=')+1);
+    ///
+    ///         // Now that we've got the boundary we can parse our multipart and use it as normal
+    ///         var parser = new MultipartFormDataParser(data, boundary, Encoding.UTF8);
+    ///
+    ///         ...
+    ///     }
+    ///   </code>
+    /// </example>
+    public class MultipartFormDataParser : IMultipartFormDataParser
 	{
 		#region Constants and fields
 
@@ -97,8 +93,8 @@ namespace HttpMultipartParser
 		/// </summary>
 		private MultipartFormDataParser()
 		{
-			_files = new List<FilePart>();
-			_parameters = new List<ParameterPart>();
+			_files = [];
+			_parameters = [];
 		}
 
 		#endregion

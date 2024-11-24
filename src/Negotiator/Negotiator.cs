@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace dotNetExpress.Lookup;
+﻿namespace dotNetExpress.Lookup;
 
 internal class Negotiator
 {
@@ -28,7 +26,7 @@ internal class Negotiator
     internal string[] MediaTypes(string[] available = null)
     {
         var mediaType = new MediaType();
-        return mediaType.PreferredMediaTypes(_req.Headers["Accept"], available);
+        return mediaType.PreferredMediaTypes(_req.Get("Accept"), available);
     }
 
 }

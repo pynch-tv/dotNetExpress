@@ -4,19 +4,19 @@ namespace dotNetExpress.examples;
 
 internal partial class Examples
 {
-    internal static void Middleware()
+    internal static async Task Middleware()
     {
-        void middleware1(Request req, Response res, NextCallback? next = null)
+        async Task middleware1(Request req, Response res, NextCallback? next = null)
         {
             next();
         }
 
-        void middleware2(Request req, Response res, NextCallback? next = null)
+        async Task middleware2(Request req, Response res, NextCallback? next = null)
         {
             next();
         }
 
-        void middleware3(Request req, Response res, NextCallback? next = null)
+        async Task middleware3(Request req, Response res, NextCallback? next = null)
         {
             next();
         }
@@ -27,7 +27,7 @@ internal partial class Examples
         // add a single middleware
         app.Use(middleware1);
 
-        app.Use((req, res, next) =>
+        app.Use(async Task (req, res, next) =>
         {
             Console.WriteLine("hello");
             next();
@@ -35,7 +35,7 @@ internal partial class Examples
 
         app.Get("/", middleware2, null, middleware3);
 
-        app.Listen(port, () =>
+        await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

@@ -2,9 +2,9 @@
 
 internal class Program
 {
-    private static void Main(string[] _)
+    static async Task Main(string[] args)
     {
-        Examples.Download();
+        await Examples.HelloWorld();
 
         Console.ReadLine();
     }

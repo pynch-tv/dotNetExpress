@@ -1,26 +1,19 @@
 ﻿using dotNetExpress;
 using dotNetExpress.Delegates;
 using dotNetExpress.Options;
-using System.IO;
 
-namespace Pynch.Nexa.Tools.Express.Middlewares.ServerStatic;
+namespace dotnetExpress.Middlewares.ServerStatic;
 
-public class ServeStatic
+/// <summary>
+/// Constructor
+/// </summary>
+/// <param name="root"></param>
+/// <param name="options"></param>
+public class ServeStatic(string root, StaticOptions options)
 {
-    private readonly string _root;
+    private readonly string _root = root;
 
-    private readonly StaticOptions _options;
-
-    /// <summary>
-    /// Constructor
-    /// </summary>
-    /// <param name="root"></param>
-    /// <param name="options"></param>
-    public ServeStatic(string root, StaticOptions options)
-    {
-        _root = root;
-        _options = options ?? new();
-    }
+    private readonly StaticOptions _options = options ?? new();
 
     /// <summary>
     /// 
@@ -28,10 +21,9 @@ public class ServeStatic
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public void Serve(Request req, Response res, NextCallback next = null)
+    public async Task Serve(Request req, Response res, NextCallback next = null)
     {
-
-        var resource = Path.Combine(_root, req.Path.TrimStart('/'));
+        var resource = Path.Combine(_root, req.Path?.TrimStart('/'));
         if (File.Exists(resource))
         {
             res.SendFile(resource);

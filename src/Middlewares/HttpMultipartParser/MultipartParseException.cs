@@ -23,17 +23,15 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System;
-
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Represents a parsing problem occurring within the MultipartFormDataParser.
-	/// </summary>
+    /// <summary>
+    ///     Represents a parsing problem occurring within the MultipartFormDataParser.
+    /// </summary>
 #if NET40
     [Serializable]
 #endif
-	public class MultipartParseException : Exception
+    public class MultipartParseException : Exception
 	{
 		#region Constructors and Destructors
 

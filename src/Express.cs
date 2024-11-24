@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using System.Collections.Specialized;
-using System.Threading;
 using dotNetExpress.Options;
 using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
-using Pynch.Nexa.Tools.Express.Middlewares.BodyParser;
-using Pynch.Nexa.Tools.Express.Middlewares.ServerStatic;
+using dotnetExpress.Middlewares.BodyParser;
+using dotnetExpress.Middlewares.ServerStatic;
 
 namespace dotNetExpress;
 
@@ -17,15 +14,30 @@ public class Express : IDisposable
 
     private readonly Router _router = new();
 
-    internal readonly Dictionary<string, RenderEngineCallback> _engines = new();
+    internal readonly Dictionary<string, RenderEngineCallback> _engines = [];
 
-    private readonly NameValueCollection _settings = new();
+    private readonly NameValueCollection _settings = [];
 
-    private readonly NameValueCollection _locals = new();
+    private readonly NameValueCollection _locals = [];
 
     internal Server Listener;
 
     private bool _disposed;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public bool KeepAlive { get { return KeepAliveTimeout != 0; } }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public int KeepAliveTimeout = 2000;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public int MaxConcurrentListeners = 10;
 
     #endregion
 
@@ -118,8 +130,7 @@ public class Express : IDisposable
 
         if (disposing)
         {
-            if (!Listener.Pending())
-                Listener.Stop();
+            Listener.End();
         }
 
         _disposed = true;
@@ -134,10 +145,10 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="req"></param>
     /// <param name="res"></param>
-    internal void Dispatch(Request req, Response res)
+    internal async Task Dispatch(Request req, Response res)
     {
-        if (_router.Dispatch(req, res))
-            res.End();
+        if (await _router.Dispatch(req, res))
+            await res.End();
     }
 
     /// <summary>
@@ -350,29 +361,43 @@ public class Express : IDisposable
 
     /// <summary>
     /// Binds and listens for connections on the specified host and port. This method is identical to Node’s http.Server.listen().
+    /// 
+    /// If port is omitted or is 0, the operating system will assign an arbitrary unused port, 
+    /// which is useful for cases like automated tasks
+    ///
     /// </summary>
     /// <param name="port"></param>
     /// <param name="callback"></param>
-    public Server Listen(int port, ListenCallback callback = null)
+    public async Task<Server> Listen(int port, ListenCallback callback = null)
     {
-        return Listen(port, string.Empty, null, callback);
+        return await Listen(port, string.Empty, 20, callback);
     }
 
     /// <summary>
     /// Binds and listens for connections on the specified host and port. This method is identical to Node’s http.Server.listen().
+    /// 
+    /// If port is omitted or is 0, the operating system will assign an arbitrary unused port, 
+    /// which is useful for cases like automated tasks
+    /// 
+    /// backLog: It specifies the max length of the queue of pending connections. You can specify the backlog if and only if you
+    /// have already specified the port and host.
+    ///
     /// </summary>
     /// <param name="port"></param>
     /// <param name="host"></param>
     /// <param name="backLog"></param>
     /// <param name="callback"></param>
-    public Server Listen(int port, string host = "", object backLog = null, ListenCallback callback = null)
+    public async Task<Server> Listen(int port, string host = "", int backLog = 20, ListenCallback callback = null)
     {
-        var maxThreadsCount = Environment.ProcessorCount * 4;
-        ThreadPool.SetMaxThreads(maxThreadsCount, maxThreadsCount);
-        ThreadPool.SetMinThreads(2, 2);
+        IPAddress ipAddress = IPAddress.Any;
+        if (!string.IsNullOrEmpty(host))
+            ipAddress = IPAddress.Parse(host);
 
-        Listener = new Server(IPAddress.Any, port);
-        Listener.Begin(this);
+        //if (port == 0)
+        //    port = 0;
+
+        Listener = new Server(ipAddress, port);
+        await Listener.Begin(this);
 
         callback?.Invoke();
 
@@ -549,9 +574,4 @@ public class Express : IDisposable
 
     #endregion
 
-    #region WebSocket
-
-    public WsServer WsServer => Listener.WsServer;
-
-    #endregion
 }

@@ -70,7 +70,7 @@ namespace HttpMultipartParser
 		private static IEnumerable<byte> GetDecodedBytes(string encodedData)
 		{
 			var encodedCharacters = encodedData.ToCharArray();
-			for (var i = 0; i < encodedCharacters.Length; i++)
+			for (int i = 0; i < encodedCharacters.Length; i++)
 			{
 				if (encodedCharacters[i] == '%')
 				{
@@ -98,9 +98,9 @@ namespace HttpMultipartParser
 		/// <returns>Bool representing whether the character set is supported.</returns>
 		private static bool IsSupportedCharacterSet(string characterSet)
 		{
-			return Encoding
-                .GetEncodings()
-                .Any(e => string.Equals(e.Name, characterSet, StringComparison.InvariantCultureIgnoreCase));
+			return Encoding.GetEncodings()
+						   .Where(e => string.Equals(e.Name, characterSet, StringComparison.OrdinalIgnoreCase))
+						   .Any();
 		}
 	}
 }

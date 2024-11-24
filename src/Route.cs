@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Net.Http;
-using dotNetExpress.Delegates;
+﻿using dotNetExpress.Delegates;
 
 namespace dotNetExpress;
 
@@ -10,7 +8,7 @@ public class Route
     public string Path { get; }
     public MiddlewareCallback[] Middlewares { get; }
 
-    public List<string> Params = new();
+    public List<string> Params = [];
 
     /// <summary>
     /// 

@@ -1,45 +1,40 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to parse a
-	///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
-	///         <c>multipart/form-data</c>
-	///     </see>
-	///     stream into it's parameters and file data.
-	/// </summary>
-	/// <remarks>
-	///     <para>
-	///         A parameter is defined as any non-file data passed in the multipart stream. For example
-	///         any form fields would be considered a parameter.
-	///     </para>
-	///     <para>
-	///         The parser determines if a section is a file or not based on the presence or absence
-	///         of the filename argument for the Content-Type header. If filename is set then the section
-	///         is assumed to be a file, otherwise it is assumed to be parameter data.
-	///     </para>
-	/// </remarks>
-	/// <example>
-	///     <code lang="C#">
-	///       Stream multipartStream = GetTheMultipartStream();
-	///       string boundary = GetTheBoundary();
-	///       var parser = new StreamingMultipartFormDataParser(multipartStream, boundary, Encoding.UTF8);
-	///
-	///       // Set up our delegates for how we want to handle recieved data.
-	///       // In our case parameters will be written to a dictionary and files
-	///       // will be written to a filestream
-	///       parser.ParameterHandler += parameter => AddToDictionary(parameter);
-	///       parser.FileHandler += (name, fileName, type, disposition, buffer, bytes) => WriteDataToFile(fileName, buffer, bytes);
-	///       parser.Run();
-	///   </code>
-	/// </example>
-	public class StreamingMultipartFormDataParser : IStreamingMultipartFormDataParser
+    /// <summary>
+    ///     Provides methods to parse a
+    ///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
+    ///         <c>multipart/form-data</c>
+    ///     </see>
+    ///     stream into it's parameters and file data.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A parameter is defined as any non-file data passed in the multipart stream. For example
+    ///         any form fields would be considered a parameter.
+    ///     </para>
+    ///     <para>
+    ///         The parser determines if a section is a file or not based on the presence or absence
+    ///         of the filename argument for the Content-Type header. If filename is set then the section
+    ///         is assumed to be a file, otherwise it is assumed to be parameter data.
+    ///     </para>
+    /// </remarks>
+    /// <example>
+    ///     <code lang="C#">
+    ///       Stream multipartStream = GetTheMultipartStream();
+    ///       string boundary = GetTheBoundary();
+    ///       var parser = new StreamingMultipartFormDataParser(multipartStream, boundary, Encoding.UTF8);
+    ///
+    ///       // Set up our delegates for how we want to handle recieved data.
+    ///       // In our case parameters will be written to a dictionary and files
+    ///       // will be written to a filestream
+    ///       parser.ParameterHandler += parameter => AddToDictionary(parameter);
+    ///       parser.FileHandler += (name, fileName, type, disposition, buffer, bytes) => WriteDataToFile(fileName, buffer, bytes);
+    ///       parser.Run();
+    ///   </code>
+    /// </example>
+    public class StreamingMultipartFormDataParser : IStreamingMultipartFormDataParser
 	{
 		/// <summary>
 		///     List of mimetypes that should be detected as file.

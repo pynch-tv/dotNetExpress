@@ -4,7 +4,7 @@ namespace dotNetExpress.examples;
 
 internal partial class Examples
 {
-    internal static void Markdown()
+    internal static async Task Markdown()
     {
         var app = new Express();
         const int port = 8080;
@@ -22,12 +22,12 @@ internal partial class Examples
         // make it the default, so we don't need .md
         app.Set("view engine", "md");
 
-        app.Get("/", (req, res, next) =>
+        app.Get("/", async Task (req, res, next) =>
         {
-            res.Render("index", new NameValueCollection() { { "title", "Markdown Example" } });
+            await res.Render("index", new NameValueCollection() { { "title", "Markdown Example" } });
         });
 
-        app.Listen(port, () =>
+        await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

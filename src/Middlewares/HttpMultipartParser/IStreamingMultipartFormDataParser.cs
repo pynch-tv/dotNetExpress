@@ -1,16 +1,13 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to parse a
-	///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
-	///         <c>multipart/form-data</c>
-	///     </see>
-	///     stream into it's parameters and file data.
-	/// </summary>
-	public interface IStreamingMultipartFormDataParser
+    /// <summary>
+    ///     Provides methods to parse a
+    ///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
+    ///         <c>multipart/form-data</c>
+    ///     </see>
+    ///     stream into it's parameters and file data.
+    /// </summary>
+    public interface IStreamingMultipartFormDataParser
 	{
 		/// <summary>
 		/// Gets or sets the FileHandler. Delegates attached to this property will receive sequential file stream data from this parser.

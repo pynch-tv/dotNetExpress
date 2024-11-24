@@ -1,51 +1,45 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to parse a
-	///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
-	///         <c>multipart/form-data</c>
-	///     </see>
-	///     stream into it's parameters and file data.
-	/// </summary>
-	/// <remarks>
-	///     <para>
-	///         A parameter is defined as any non-file data passed in the multipart stream. For example
-	///         any form fields would be considered a parameter.
-	///     </para>
-	///     <para>
-	///         The parser determines if a section is a file or not based on the presence or absence
-	///         of the filename argument for the Content-Type header. If filename is set then the section
-	///         is assumed to be a file, otherwise it is assumed to be parameter data.
-	///     </para>
-	///     <para>
-	///          Please note that this parser is very similar to <seealso cref="StreamingMultipartFormDataParser"/>.
-	///          The main difference being that this parser will read the content of parameters as binary rather than text.
-	///     </para>
-	/// </remarks>
-	/// <example>
-	///     <code lang="C#">
-	///       Stream multipartStream = GetTheMultipartStream();
-	///       string boundary = GetTheBoundary();
-	///       var parser = new StreamingMultipartFormDataParser(multipartStream, boundary, Encoding.UTF8);
-	///
-	///       // Set up our delegates for how we want to handle recieved data.
-	///       // In our case parameters will be written to a dictionary and files
-	///       // will be written to a filestream
-	///       parser.ParameterHandler += parameter => AddToDictionary(parameter);
-	///       parser.FileHandler += (name, fileName, type, disposition, buffer, bytes) => WriteDataToFile(fileName, buffer, bytes);
-	///       parser.Run();
-	///   </code>
-	/// </example>
-	public class StreamingBinaryMultipartFormDataParser : IStreamingBinaryMultipartFormDataParser
+    /// <summary>
+    ///     Provides methods to parse a
+    ///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
+    ///         <c>multipart/form-data</c>
+    ///     </see>
+    ///     stream into it's parameters and file data.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A parameter is defined as any non-file data passed in the multipart stream. For example
+    ///         any form fields would be considered a parameter.
+    ///     </para>
+    ///     <para>
+    ///         The parser determines if a section is a file or not based on the presence or absence
+    ///         of the filename argument for the Content-Type header. If filename is set then the section
+    ///         is assumed to be a file, otherwise it is assumed to be parameter data.
+    ///     </para>
+    ///     <para>
+    ///          Please note that this parser is very similar to <seealso cref="StreamingMultipartFormDataParser"/>.
+    ///          The main difference being that this parser will read the content of parameters as binary rather than text.
+    ///     </para>
+    /// </remarks>
+    /// <example>
+    ///     <code lang="C#">
+    ///       Stream multipartStream = GetTheMultipartStream();
+    ///       string boundary = GetTheBoundary();
+    ///       var parser = new StreamingMultipartFormDataParser(multipartStream, boundary, Encoding.UTF8);
+    ///
+    ///       // Set up our delegates for how we want to handle recieved data.
+    ///       // In our case parameters will be written to a dictionary and files
+    ///       // will be written to a filestream
+    ///       parser.ParameterHandler += parameter => AddToDictionary(parameter);
+    ///       parser.FileHandler += (name, fileName, type, disposition, buffer, bytes) => WriteDataToFile(fileName, buffer, bytes);
+    ///       parser.Run();
+    ///   </code>
+    /// </example>
+    public class StreamingBinaryMultipartFormDataParser : IStreamingBinaryMultipartFormDataParser
 	{
 		/// <summary>
 		///     List of mimetypes that should be detected as file.
@@ -275,7 +269,7 @@ namespace HttpMultipartParser
 			else if (!line.StartsWith("--")) throw new MultipartParseException("Unable to determine boundary: content does not start with a valid multipart boundary");
 
 			// Remove the two dashes
-			var boundary = line.Substring(2);
+			string boundary = line.Substring(2);
 
 			// If the string ends with '--' it means that we found the "end" boundary and we
 			// need to trim the two dashes to get the actual boundary
@@ -331,7 +325,7 @@ namespace HttpMultipartParser
 			else if (!line.StartsWith("--")) throw new MultipartParseException("Unable to determine boundary: content does not start with a valid multipart boundary");
 
 			// Remove the two dashes
-			var boundary = line.Substring(2);
+			string boundary = line.Substring(2);
 
 			// If the string ends with '--' it means that we found the "end" boundary and we
 			// need to trim the two dashes to get the actual boundary.
@@ -405,7 +399,7 @@ namespace HttpMultipartParser
 			byte[][] newlinePatterns = { Encoding.GetBytes("\r\n"), Encoding.GetBytes("\n") };
 			Array.Sort(newlinePatterns, (first, second) => second.Length.CompareTo(first.Length));
 
-			var dataRef = data;
+			byte[] dataRef = data;
 			if (offset != 0)
 			{
 				dataRef = data.Skip(offset).ToArray();
@@ -413,7 +407,7 @@ namespace HttpMultipartParser
 
 			foreach (var pattern in newlinePatterns)
 			{
-				var position = SubsequenceFinder.Search(dataRef, pattern, maxBytes);
+				int position = SubsequenceFinder.Search(dataRef, pattern, maxBytes);
 				if (position != -1)
 				{
 					return position + offset;
@@ -443,10 +437,10 @@ namespace HttpMultipartParser
 			// Go through each pattern and find which one matches.
 			foreach (var pattern in newlinePatterns)
 			{
-				var found = false;
-				for (var i = 0; i < pattern.Length; ++i)
+				bool found = false;
+				for (int i = 0; i < pattern.Length; ++i)
 				{
-					var readPos = offset + i;
+					int readPos = offset + i;
 					if (data.Length == readPos || pattern[i] != data[readPos])
 					{
 						found = false;
@@ -483,7 +477,7 @@ namespace HttpMultipartParser
 			// First we need to read until we find a boundary
 			while (true)
 			{
-				var line = reader.ReadLine();
+				string line = reader.ReadLine();
 
 				if (line == boundary)
 				{
@@ -536,7 +530,7 @@ namespace HttpMultipartParser
 			// First we need to read until we find a boundary
 			while (true)
 			{
-				var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+				string line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
 
 				if (line == boundary)
 				{
@@ -576,14 +570,14 @@ namespace HttpMultipartParser
 		/// </param>
 		private void ParseFilePart(Dictionary<string, string> parameters, RebufferableBinaryReader reader)
 		{
-			var partNumber = 0; // begins count parts of file from 0
+			int partNumber = 0; // begins count parts of file from 0
 
 			// Read the parameters
-			parameters.TryGetValue("name", out var name);
-			parameters.TryGetValue("filename", out var filename);
-			parameters.TryGetValue("filename*", out var filenameStar);
-			parameters.TryGetValue("content-type", out var contentType);
-			parameters.TryGetValue("content-disposition", out var contentDisposition);
+			parameters.TryGetValue("name", out string name);
+			parameters.TryGetValue("filename", out string filename);
+			parameters.TryGetValue("filename*", out string filenameStar);
+			parameters.TryGetValue("content-type", out string contentType);
+			parameters.TryGetValue("content-disposition", out string contentDisposition);
 
 			// Per RFC6266 section 4.3, we should favor "filename*" over "filename"
 			if (!string.IsNullOrEmpty(filenameStar)) filename = RFC5987.Decode(filenameStar);
@@ -617,11 +611,11 @@ namespace HttpMultipartParser
 				// Now we want to check for a substring within the current buffer.
 				// We need to find the closest substring greedily. That is find the
 				// closest boundary and don't miss the end --'s if it's an end boundary.
-				var endBoundaryPos = SubsequenceFinder.Search(fullBuffer, endBoundaryBinary, fullLength);
-				var endBoundaryLength = endBoundaryBinary.Length;
+				int endBoundaryPos = SubsequenceFinder.Search(fullBuffer, endBoundaryBinary, fullLength);
+				int endBoundaryLength = endBoundaryBinary.Length;
 
-				var boundaryPos = SubsequenceFinder.Search(fullBuffer, boundaryBinary, fullLength);
-				var boundaryLength = boundaryBinary.Length;
+				int boundaryPos = SubsequenceFinder.Search(fullBuffer, boundaryBinary, fullLength);
+				int boundaryLength = boundaryBinary.Length;
 
 				// If the boundaryPos is exactly at the end of our full buffer then ignore it as it could
 				// actually be a endBoundary that's had one or both of the '--' chopped off by the buffer.
@@ -633,8 +627,8 @@ namespace HttpMultipartParser
 
 				// We need to select the appropriate position and length
 				// based on the smallest non-negative position.
-				var endPos = -1;
-				var endPosLength = 0;
+				int endPos = -1;
+				int endPosLength = 0;
 
 				if (endBoundaryPos >= 0 && boundaryPos >= 0)
 				{
@@ -671,13 +665,13 @@ namespace HttpMultipartParser
 					// Now we need to check if the endPos is followed by \r\n or just \n. HTTP
 					// specifies \r\n but some clients might encode with \n. Or we might get 0 if
 					// we are at the end of the file.
-					var boundaryNewlineOffset = CalculateNewlineLength(ref fullBuffer, Math.Min(fullLength - 1, endPos + endPosLength));
+					int boundaryNewlineOffset = CalculateNewlineLength(ref fullBuffer, Math.Min(fullLength - 1, endPos + endPosLength));
 
 					// We also need to check if the last n characters of the buffer to write
 					// are a newline and if they are ignore them.
-					var maxNewlineBytes = Encoding.GetMaxByteCount(2);
-					var bufferNewlineOffset = FindNextNewline(ref fullBuffer, Math.Max(0, endPos - maxNewlineBytes), maxNewlineBytes);
-					var bufferNewlineLength = CalculateNewlineLength(ref fullBuffer, bufferNewlineOffset);
+					int maxNewlineBytes = Encoding.GetMaxByteCount(2);
+					int bufferNewlineOffset = FindNextNewline(ref fullBuffer, Math.Max(0, endPos - maxNewlineBytes), maxNewlineBytes);
+					int bufferNewlineLength = CalculateNewlineLength(ref fullBuffer, bufferNewlineOffset);
 
 					// We've found an end. We need to consume all the binary up to it
 					// and then write the remainder back to the original stream. Then we
@@ -688,8 +682,8 @@ namespace HttpMultipartParser
 					// and encoding
 					FileHandler(name, filename, contentType, contentDisposition, fullBuffer, endPos - bufferNewlineLength, partNumber++, additionalParameters);
 
-					var writeBackOffset = endPos + endPosLength + boundaryNewlineOffset;
-					var writeBackAmount = (prevLength + curLength) - writeBackOffset;
+					int writeBackOffset = endPos + endPosLength + boundaryNewlineOffset;
+					int writeBackAmount = (prevLength + curLength) - writeBackOffset;
 					reader.Buffer(fullBuffer, writeBackOffset, writeBackAmount);
 
 					break;
@@ -732,14 +726,14 @@ namespace HttpMultipartParser
 		/// </returns>
 		private async Task ParseFilePartAsync(Dictionary<string, string> parameters, RebufferableBinaryReader reader, CancellationToken cancellationToken = default)
 		{
-			var partNumber = 0; // begins count parts of file from 0
+			int partNumber = 0; // begins count parts of file from 0
 
 			// Read the parameters
-			parameters.TryGetValue("name", out var name);
-			parameters.TryGetValue("filename", out var filename);
-			parameters.TryGetValue("filename*", out var filenameStar);
-			parameters.TryGetValue("content-type", out var contentType);
-			parameters.TryGetValue("content-disposition", out var contentDisposition);
+			parameters.TryGetValue("name", out string name);
+			parameters.TryGetValue("filename", out string filename);
+			parameters.TryGetValue("filename*", out string filenameStar);
+			parameters.TryGetValue("content-type", out string contentType);
+			parameters.TryGetValue("content-disposition", out string contentDisposition);
 
 			// Per RFC6266 section 4.3, we should favor "filename*" over "filename"
 			if (!string.IsNullOrEmpty(filenameStar)) filename = RFC5987.Decode(filenameStar);
@@ -774,11 +768,11 @@ namespace HttpMultipartParser
 				// Now we want to check for a substring within the current buffer.
 				// We need to find the closest substring greedily. That is find the
 				// closest boundary and don't miss the end --'s if it's an end boundary.
-				var endBoundaryPos = SubsequenceFinder.Search(fullBuffer, endBoundaryBinary, fullLength);
-				var endBoundaryLength = endBoundaryBinary.Length;
+				int endBoundaryPos = SubsequenceFinder.Search(fullBuffer, endBoundaryBinary, fullLength);
+				int endBoundaryLength = endBoundaryBinary.Length;
 
-				var boundaryPos = SubsequenceFinder.Search(fullBuffer, boundaryBinary, fullLength);
-				var boundaryLength = boundaryBinary.Length;
+				int boundaryPos = SubsequenceFinder.Search(fullBuffer, boundaryBinary, fullLength);
+				int boundaryLength = boundaryBinary.Length;
 
 				// If the boundaryPos is exactly at the end of our full buffer then ignore it as it could
 				// actually be a endBoundary that's had one or both of the '--' chopped off by the buffer.
@@ -790,8 +784,8 @@ namespace HttpMultipartParser
 
 				// We need to select the appropriate position and length
 				// based on the smallest non-negative position.
-				var endPos = -1;
-				var endPosLength = 0;
+				int endPos = -1;
+				int endPosLength = 0;
 
 				if (endBoundaryPos >= 0 && boundaryPos >= 0)
 				{
@@ -828,13 +822,13 @@ namespace HttpMultipartParser
 					// Now we need to check if the endPos is followed by \r\n or just \n. HTTP
 					// specifies \r\n but some clients might encode with \n. Or we might get 0 if
 					// we are at the end of the file.
-					var boundaryNewlineOffset = CalculateNewlineLength(ref fullBuffer, Math.Min(fullLength - 1, endPos + endPosLength));
+					int boundaryNewlineOffset = CalculateNewlineLength(ref fullBuffer, Math.Min(fullLength - 1, endPos + endPosLength));
 
 					// We also need to check if the last n characters of the buffer to write
 					// are a newline and if they are ignore them.
-					var maxNewlineBytes = Encoding.GetMaxByteCount(2);
-					var bufferNewlineOffset = FindNextNewline(ref fullBuffer, Math.Max(0, endPos - maxNewlineBytes), maxNewlineBytes);
-					var bufferNewlineLength = CalculateNewlineLength(ref fullBuffer, bufferNewlineOffset);
+					int maxNewlineBytes = Encoding.GetMaxByteCount(2);
+					int bufferNewlineOffset = FindNextNewline(ref fullBuffer, Math.Max(0, endPos - maxNewlineBytes), maxNewlineBytes);
+					int bufferNewlineLength = CalculateNewlineLength(ref fullBuffer, bufferNewlineOffset);
 
 					// We've found an end. We need to consume all the binary up to it
 					// and then write the remainder back to the original stream. Then we
@@ -845,8 +839,8 @@ namespace HttpMultipartParser
 					// and encoding
 					FileHandler(name, filename, contentType, contentDisposition, fullBuffer, endPos - bufferNewlineLength, partNumber++, additionalParameters);
 
-					var writeBackOffset = endPos + endPosLength + boundaryNewlineOffset;
-					var writeBackAmount = (prevLength + curLength) - writeBackOffset;
+					int writeBackOffset = endPos + endPosLength + boundaryNewlineOffset;
+					int writeBackAmount = (prevLength + curLength) - writeBackOffset;
 					reader.Buffer(fullBuffer, writeBackOffset, writeBackAmount);
 
 					break;
@@ -1007,7 +1001,7 @@ namespace HttpMultipartParser
 			// multiple Content-Disposition: form-data files.
 			var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-			var line = reader.ReadLine();
+			string line = reader.ReadLine();
 			while (line != string.Empty)
 			{
 				if (line == null)
@@ -1031,7 +1025,7 @@ namespace HttpMultipartParser
 				//     ["filename"] = "data.txt"
 				//   Content-Type: text/plain
 				//     ["content-type"] = "text/plain"
-				var values = SplitBySemicolonIgnoringSemicolonsInQuotes(line)
+				Dictionary<string, string> values = SplitBySemicolonIgnoringSemicolonsInQuotes(line)
 					.Select(x => x.Split(new[] { ':', '=' }, 2))
 
 					// select where the length of the array is equal to two, that way if it is only one it will
@@ -1107,7 +1101,7 @@ namespace HttpMultipartParser
 			// multiple Content-Disposition: form-data files.
 			var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-			var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+			string line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
 			while (line != string.Empty)
 			{
 				if (line == null)
@@ -1131,7 +1125,7 @@ namespace HttpMultipartParser
 				//     ["filename"] = "data.txt"
 				//   Content-Type: text/plain
 				//     ["content-type"] = "text/plain"
-				var values = SplitBySemicolonIgnoringSemicolonsInQuotes(line)
+				Dictionary<string, string> values = SplitBySemicolonIgnoringSemicolonsInQuotes(line)
 					.Select(x => x.Split(new[] { ':', '=' }, 2))
 
 					// select where the length of the array is equal to two, that way if it is only one it will
@@ -1191,10 +1185,10 @@ namespace HttpMultipartParser
 		{
 			// Loop over the line looking for a semicolon. Keep track of if we're currently inside quotes
 			// and if we are don't treat a semicolon as a splitting character.
-			var inQuotes = false;
-			var workingString = string.Empty;
+			bool inQuotes = false;
+			string workingString = string.Empty;
 
-			foreach (var c in line)
+			foreach (char c in line)
 			{
 				if (c == '"')
 				{

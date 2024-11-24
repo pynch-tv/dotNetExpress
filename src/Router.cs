@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
@@ -15,13 +11,13 @@ public class Router
 
     private Router _parent;
 
-    private readonly List<ErrorCallback> _errorHandler = new();
+    private readonly List<ErrorCallback> _errorHandler = [];
 
-    private readonly List<MiddlewareCallback> _middlewares = new();
+    private readonly List<MiddlewareCallback> _middlewares = [];
 
-    private readonly List<Route> _routes = new();
+    private readonly List<Route> _routes = [];
 
-    private readonly Dictionary<string, Router> _routers = new();
+    private readonly Dictionary<string, Router> _routers = [];
 
     private MiddlewareCallback _catchAll;
 
@@ -95,19 +91,45 @@ public class Router
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <returns></returns>
-    public bool Dispatch(Request req, Response res)
+    public async Task<bool> Dispatch(Request req, Response res)
     {
         _gotoNext = true;
         foreach (var middleware in _middlewares)
         {
             _gotoNext = false;
-            middleware(req, res, next =>
+            try
             {
-                if (null != next)
-                    throw next;
-                _gotoNext = true;
-            });
-            if (!_gotoNext) break;
+                await middleware(req, res, next =>
+                {
+                    if (null != next)
+                        throw next;
+                    _gotoNext = true;
+                });
+                if (!_gotoNext)
+                    break;
+            }
+            catch (ExpressException e)
+            {
+                foreach (var errorCallback in _errorHandler)
+                {
+                    await errorCallback(e, req, res, next => { _gotoNext = true; });
+                    if (!_gotoNext) break;
+                }
+
+                await res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
+                return true;
+            }
+            catch (Exception e)
+            {
+                foreach (var errorCallback in _errorHandler)
+                {
+                    await errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
+                    if (!_gotoNext) break;
+                }
+
+                await res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
+                return true;
+            }
         }
         if (!_gotoNext) return true;
 
@@ -120,10 +142,10 @@ public class Router
                 _gotoNext = false;
                 try
                 {
-                    middleware?.Invoke(req, res, next =>
+                    await middleware(req, res, next =>
                     {
                         if (null != next)
-                            throw next;
+                            throw next; // throw the error to the error handler
                         _gotoNext = true;
                     });
 
@@ -134,22 +156,22 @@ public class Router
                 {
                     foreach (var errorCallback in _errorHandler)
                     {
-                        errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
+                        await errorCallback(e, req, res, next => { _gotoNext = true; });
                         if (!_gotoNext) break;
                     }
 
-                    res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
+                    await res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
                     return true;
                 }
                 catch (Exception e)
                 {
                     foreach (var errorCallback in _errorHandler)
                     {
-                        errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
+                        await errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
                         if (!_gotoNext) break;
                     }
 
-                    res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
+                    await res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
                     return true;
                 }
             }
@@ -159,15 +181,15 @@ public class Router
 
         foreach (var router in _routers.Values)
         {
-            if (router.Dispatch(req, res))
+            if (await router.Dispatch(req, res))
                 return true;
 
-            res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" }); 
+            await res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" }); 
         }
 
         if (null == _catchAll) return false;
 
-        _catchAll(req, res);
+        await _catchAll(req, res);
 
         return true;
 
@@ -285,7 +307,17 @@ public class Router
     /// <param name="middleware"></param>
     public void Patch(string path, params MiddlewareCallback[] middleware)
     {
-        METHOD(HttpMethod.Patch, path, middleware );
+        METHOD(HttpMethod.Patch, path, middleware);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="middleware"></param>
+    public void Options(string path, params MiddlewareCallback[] middleware)
+    {
+        METHOD(HttpMethod.Options, path, middleware);
     }
 
     /// <summary>

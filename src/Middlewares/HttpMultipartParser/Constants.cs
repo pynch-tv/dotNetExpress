@@ -12,7 +12,7 @@ namespace HttpMultipartParser
 		///     See: http://stackoverflow.com/a/129318/203133
 		///     See: http://msdn.microsoft.com/en-us/library/9kstw824.aspx (under remarks).
 		/// </remarks>
-		internal const int DefaultBufferSize = 4096;
+		internal const int DefaultBufferSize = 128 * 1024;
 
 		/// <summary>
 		/// The mimetypes that are considered a file by default.

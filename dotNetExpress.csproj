@@ -27,4 +27,8 @@
     <None Include="examples\_StaticFiles\public\js\app.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
+  </ItemGroup>
+
 </Project>

@@ -25,19 +25,16 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to interpret and read a stream as either character or binary
-	///     data similar to a <see cref="BinaryReader" /> and provides the ability to push
-	///     data onto the front of the stream.
-	/// </summary>
-	public class RebufferableBinaryReader
+    /// <summary>
+    ///     Provides methods to interpret and read a stream as either character or binary
+    ///     data similar to a <see cref="BinaryReader" /> and provides the ability to push
+    ///     data onto the front of the stream.
+    /// </summary>
+    public class RebufferableBinaryReader
 	{
 		#region Fields
 
@@ -152,7 +149,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public int Read()
 		{
-			var value = -1;
+			int value = -1;
 			while (value == -1)
 			{
 				if (!streamStack.HasData())
@@ -188,7 +185,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public int Read(byte[] buffer, int index, int count)
 		{
-			var amountRead = 0;
+			int amountRead = 0;
 			while (amountRead < count)
 			{
 				if (!streamStack.HasData())
@@ -225,7 +222,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public int Read(char[] buffer, int index, int count)
 		{
-			var amountRead = 0;
+			int amountRead = 0;
 			while (amountRead < count)
 			{
 				if (!streamStack.HasData())
@@ -263,7 +260,7 @@ namespace HttpMultipartParser
 						}
 					}
 
-					var line = streamStack.ReadByteLine(out var hitStreamEnd);
+					byte[] line = streamStack.ReadByteLine(out bool hitStreamEnd);
 
 					builder.Write(line, 0, line.Length);
 					if (!hitStreamEnd)
@@ -283,7 +280,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public string ReadLine()
 		{
-			var data = ReadByteLine();
+			byte[] data = ReadByteLine();
 			return data == null ? null : encoding.GetString(data);
 		}
 
@@ -299,7 +296,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public async Task<int> ReadAsync(CancellationToken cancellationToken = default)
 		{
-			var value = -1;
+			int value = -1;
 			while (value == -1)
 			{
 				if (!streamStack.HasData())
@@ -339,7 +336,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public async Task<int> ReadAsync(byte[] buffer, int index, int count, CancellationToken cancellationToken = default)
 		{
-			var amountRead = 0;
+			int amountRead = 0;
 			while (amountRead < count)
 			{
 				if (!streamStack.HasData())
@@ -380,7 +377,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public async Task<int> ReadAsync(char[] buffer, int index, int count, CancellationToken cancellationToken = default)
 		{
-			var amountRead = 0;
+			int amountRead = 0;
 			while (amountRead < count)
 			{
 				if (!streamStack.HasData())
@@ -423,7 +420,7 @@ namespace HttpMultipartParser
 						}
 					}
 
-					var line = streamStack.ReadByteLine(out var hitStreamEnd);
+					byte[] line = streamStack.ReadByteLine(out bool hitStreamEnd);
 
 					await builder.WriteAsync(line, 0, line.Length, cancellationToken).ConfigureAwait(false);
 					if (!hitStreamEnd)
@@ -446,7 +443,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public async Task<string> ReadLineAsync(CancellationToken cancellationToken = default)
 		{
-			var data = await ReadByteLineAsync(cancellationToken).ConfigureAwait(false);
+			byte[] data = await ReadByteLineAsync(cancellationToken).ConfigureAwait(false);
 			return data == null ? null : encoding.GetString(data);
 		}
 
@@ -466,9 +463,9 @@ namespace HttpMultipartParser
 		/// </returns>
 		private int GetBomOffset(byte[] buffer)
 		{
-			var bom = encoding.GetPreamble();
-			var usesBom = true;
-			for (var i = 0; i < bom.Length; ++i)
+			byte[] bom = encoding.GetPreamble();
+			bool usesBom = true;
+			for (int i = 0; i < bom.Length; ++i)
 			{
 				if (bom[i] != buffer[i])
 				{
@@ -488,7 +485,7 @@ namespace HttpMultipartParser
 		private int StreamData()
 		{
 			var buffer = Utilities.ArrayPool.Rent(bufferSize);
-			var amountRead = stream.Read(buffer, 0, bufferSize);
+			int amountRead = stream.Read(buffer, 0, bufferSize);
 
 			PushToStack(buffer, amountRead);
 
@@ -509,7 +506,7 @@ namespace HttpMultipartParser
 		private async Task<int> StreamDataAsync(CancellationToken cancellationToken = default)
 		{
 			var buffer = Utilities.ArrayPool.Rent(bufferSize);
-			var amountRead = await stream.ReadAsync(buffer, 0, bufferSize, cancellationToken).ConfigureAwait(false);
+			int amountRead = await stream.ReadAsync(buffer, 0, bufferSize, cancellationToken).ConfigureAwait(false);
 
 			PushToStack(buffer, amountRead);
 
@@ -531,7 +528,7 @@ namespace HttpMultipartParser
 		{
 			// We need to check if our stream is using our encodings
 			// BOM, if it is we need to jump it.
-			var bomOffset = GetBomOffset(buffer);
+			int bomOffset = GetBomOffset(buffer);
 
 			// Sometimes we'll get a buffer that's smaller then we expect, chop it down
 			// for the reader:

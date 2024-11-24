@@ -1,9 +1,13 @@
-﻿using System.IO;
-using System.Text;
+﻿using System.Text;
 
 namespace dotNetExpress.Overrides;
 
-public class MessageBodyStreamReader(Stream inner) : Stream
+/// <summary>
+/// 
+/// </summary>
+/// <param name="inner"></param>
+/// <param name="bufferSize"></param>
+public class MessageBodyStreamReader(Stream inner, long bufferSize = 256 * 1024) : Stream
 {
     private long _length;
 
@@ -25,6 +29,13 @@ public class MessageBodyStreamReader(Stream inner) : Stream
 
     public override void SetLength(long value) => _length = value;
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="buffer"></param>
+    /// <param name="offset"></param>
+    /// <param name="bytesToRead"></param>
+    /// <returns></returns>
     public override int Read(byte[] buffer, int offset, int bytesToRead)
     {
         if (Position + bytesToRead > Length)
@@ -40,18 +51,27 @@ public class MessageBodyStreamReader(Stream inner) : Stream
         return bytesRead;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
     public string ReadLine()
     {
-        var buffer = new byte[8192];
+        var buffer = new byte[bufferSize];
         var i = 0;
         for (; i < buffer.Length; i++)
         {
-            buffer[i] = (byte)inner.ReadByte();
+            var b = inner.ReadByte();
+            if (b == -1) 
+                break;
+
+            buffer[i] = (byte)b;
             if (buffer[i] == '\n')
                 break;
         }
 
         if (i == buffer.Length) return string.Empty;
+        if (i == 0) return string.Empty;
 
         if (buffer[i - 1] == '\r')
             i--;
@@ -59,5 +79,11 @@ public class MessageBodyStreamReader(Stream inner) : Stream
         return Encoding.UTF8.GetString(buffer, 0, i);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="buffer"></param>
+    /// <param name="offset"></param>
+    /// <param name="count"></param>
     public override void Write(byte[] buffer, int offset, int count) { }
 }

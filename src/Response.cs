@@ -1,17 +1,11 @@
-﻿using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
+﻿using System.Collections.Specialized;
 using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
-using Pynch.Nexa.Tools.Types;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace dotNetExpress;
 
@@ -19,7 +13,7 @@ public class Response : ServerResponse
 {
     public HttpMethod HttpMethod;
 
-    private readonly NameValueCollection _locals = new();
+    private readonly NameValueCollection _locals = [];
 
     /// <summary>
     /// 
@@ -46,7 +40,7 @@ public class Response : ServerResponse
     /// The variables set on res.locals are available within a single request-response cycle,
     /// and will not be shared between requests.
     /// </summary>
-    public Dictionary<string, dynamic> Locals = new();
+    public Dictionary<string, dynamic> Locals = [];
 
     #endregion
 
@@ -113,7 +107,7 @@ public class Response : ServerResponse
     /// occurs, the callback function must explicitly handle the response process either
     /// by ending the request-response cycle, or by passing control to the next route.
     /// </summary>
-    public void Download(string path, string filename = null, DownloadOptions options = null) // todo: error callback
+    public async Task Download(string path, string filename = null, DownloadOptions options = null) // todo: error callback
     {
         options ??= new DownloadOptions();
         filename ??= Path.GetFileName(path);
@@ -202,19 +196,19 @@ public class Response : ServerResponse
     /// or null, and you can also use it to convert other values to JSON.
     /// </summary>
     /// <param name="body"></param>
-    public void Json(dynamic body)
+    public async Task Json(dynamic body)
     {
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new IPAddressConverter(), new TimeSpanConverter(), new VideoFormatConverter() }
+            Converters = { new IPAddressConverter(), new TimeSpanConverter() }
         };
 
         var jsonString = JsonSerializer.Serialize(body, options);
 
         Type("application/json");
 
-        Send(jsonString);
+        await Send(jsonString);
     }
 
     /// <summary>
@@ -223,7 +217,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="body"></param>
     /// <exception cref="NotSupportedException"></exception>
-    public void Jsonp(dynamic body)
+    public async Task Jsonp(dynamic body)
     {
         throw new NotSupportedException();
     }
@@ -291,12 +285,12 @@ public class Response : ServerResponse
     /// Status defaults to “302 “Found”.
     /// </summary>
     /// <param name="path"></param>
-    public void Redirect(string path)
+    public async Task Redirect(string path)
     {
-        Redirect(HttpStatusCode.Found, path);
+        await Redirect(HttpStatusCode.Found, path);
     }
 
-    public void Redirect(HttpStatusCode code, string path)
+    public async Task Redirect(HttpStatusCode code, string path)
     {
         throw new NotSupportedException();
     }
@@ -307,10 +301,10 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="view"></param>
     /// <param name="locals"></param>
-    public void Render(string view, dynamic locals)
+    public async Task Render(string view, dynamic locals)
     {
         var html = App.Render(view, locals);
-        Status(HttpStatusCode.OK).Send(html);
+        await Status(HttpStatusCode.OK).Send(html);
     }
 
     /// <summary>
@@ -324,53 +318,64 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="body"></param>
     /// <returns></returns>
-    public void Send(string body = null)
+    public async Task Send(string body = null)
     {
         if (body == null) return;
 
+        var bytes = Encoding.Default.GetBytes(body);
+
         if (!HasHeader("Content-Length"))
-            Set("Content-Length", body.Length);
+            Set("Content-Length", bytes.Length);
 
-        Send(Encoding.Default.GetBytes(body));
+        await Send(bytes);
     }
 
-    public void Send(object body)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="body"></param>
+    /// <returns></returns>
+    /// <exception cref="NotSupportedException"></exception>
+    public async Task Send(object body)
     {
         throw new NotSupportedException();
-        End();
+        await End();
     }
 
-    public void Send(bool body)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="body"></param>
+    /// <returns></returns>
+    /// <exception cref="NotSupportedException"></exception>
+    public async Task Send(bool body)
     {
         throw new NotSupportedException();
-        End();
+        await End();
     }
 
-    public void Send(byte[] buffer)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="buffer"></param>
+    /// <returns></returns>
+    public async Task Send(byte[] buffer)
     {
-        Write(buffer, buffer.Length);
+        await Write(buffer, buffer.Length);
 
-    //    End();
+        await End();
     }
 
-    public void Send(Stream stream)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="stream"></param>
+    /// <returns></returns>
+    public async Task Send(Stream stream)
     {
-        const int bufferSize = 16 * 1024; // 16KB buffer size
-        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
-        try
-        {
-            int bytesRead;
-            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
-            {
-                Write(buffer, bytesRead);
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
+        await stream.CopyToAsync(this._stream);
 
-        End();
+        await End();
     }
 
     /// <summary>
@@ -385,7 +390,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="filename"></param>
     /// <param name="options"></param>
-    public void SendFile(string filename, SendFileOptions options = null) // TODO callback
+    public async Task SendFile(string filename, SendFileOptions options = null) // TODO callback
     {
         options ??= new SendFileOptions();
 
@@ -407,10 +412,10 @@ public class Response : ServerResponse
         if (options.LastModified)
             _headers.Add(new NameValueCollection() { { "Last-Modified", file.LastWriteTime.ToUniversalTime().ToString("r") } });
 
-        WriteHead(_httpStatusCode);
+        await WriteHead(_httpStatusCode);
 
         var fileStream = File.OpenRead(path);
-        Send(fileStream);
+        await Send(fileStream);
 
         //fileStream.CopyTo(this._stream);
         //fileStream.Close();
@@ -423,13 +428,20 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="code"></param>
     /// <exception cref="NotSupportedException"></exception>
-    public void SendStatus(HttpStatusCode code)
+    public async Task SendStatus(HttpStatusCode code)
     {
         _httpStatusCode = code;
 
-        WriteHead(_httpStatusCode);
+        var statusMessage = code.ToString();
 
-        End();
+        var body = Regex.Replace(statusMessage, "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled);
+
+        if (!HasHeader("Content-Length"))
+            Set("Content-Length", body.Length);
+
+        await Send(Encoding.Default.GetBytes(body));
+
+        await End();
     }
 
     /// <summary>
@@ -444,6 +456,11 @@ public class Response : ServerResponse
         return this;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="code"></param>
+    /// <returns></returns>
     public Response Status(int code)
     {
         return Status((HttpStatusCode)code);
@@ -463,6 +480,11 @@ public class Response : ServerResponse
             _headers[field] = value;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="field"></param>
+    /// <param name="value"></param>
     public void Set(string field, int value)
     {
         Set(field, value.ToString());
@@ -509,23 +531,35 @@ public class Response : ServerResponse
 
     #region Override methods
 
-    public override void WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="statusCode"></param>
+    /// <param name="statusMessage"></param>
+    /// <param name="headers"></param>
+    /// <returns></returns>
+    public override async Task WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
     {
         if (App.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
             SetHeader("X-Powered-By", "dotNetExpress");
 
-        if (statusCode != HttpStatusCode.SwitchingProtocols)
+        if (statusCode == HttpStatusCode.SwitchingProtocols || (Get("Content-Type") != null && Get("Content-Type").Equals("text/event-stream")))
         {
-            if (App.Listener.KeepAlive)
+        }
+        else
+        {
+            if (App.KeepAlive)
             {
-                SetHeader("Connection", "keep-alive");
-                SetHeader("Keep-Alive", $"timeout={App.Listener.KeepAliveTimeout}"); // Keep-Alive is in *seconds*
+                if (!HasHeader("Connection"))
+                    SetHeader("Connection", "keep-alive");
+                if (!HasHeader("Keep-Alive"))
+                    SetHeader("Keep-Alive", $"timeout={App.KeepAliveTimeout}"); // Keep-Alive is in *seconds*
             }
             else
                 SetHeader("Connection", "Close");
         }
 
-        base.WriteHead(statusCode, statusMessage, headers);
+        await base.WriteHead(statusCode, statusMessage, headers);
     }
 
     #endregion

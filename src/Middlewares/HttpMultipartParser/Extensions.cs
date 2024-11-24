@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace HttpMultipartParser
 {
-	/// <summary>
-	/// Class containing various extension methods.
-	/// </summary>
-	public static class Extensions
+    /// <summary>
+    /// Class containing various extension methods.
+    /// </summary>
+    public static class Extensions
 	{
 		/// <summary>
 		/// Returns true if the parameter has any values. False otherwise.

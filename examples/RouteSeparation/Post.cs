@@ -5,9 +5,9 @@ namespace dotNetExpress.examples;
 internal class Post
     {
 
-        internal static void List(Request req, Response res, NextCallback? next)
+        internal static async Task List(Request req, Response res, NextCallback? next)
         {
-            res.Send("todo");
+            await res.Send("todo");
         }
 
     }

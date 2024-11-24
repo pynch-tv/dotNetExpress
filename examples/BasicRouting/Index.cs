@@ -2,32 +2,32 @@
 
 internal partial class Examples
 {
-    internal static void BasicRouting()
+    internal static async Task BasicRouting()
     {
         var app = new Express();
         const int port = 8080;
 
-        app.Get("/", (req, res, next) =>
+        app.Get("/", async Task (req, res, next) =>
         {
-            res.Send("Hello World!");
+            await res.Send("Hello World!");
         });
 
-        app.Post("/", (req, res, next) =>
+        app.Post("/", async Task (req, res, next) =>
         {
-            res.Send("Got a POST request");
+            await res.Send("Got a POST request");
         });
 
-        app.Put("/user", (req, res, next) =>
+        app.Put("/user", async Task (req, res, next) =>
         {
-            res.Send("Got a POST request");
+            await res.Send("Got a POST request");
         });
 
-        app.Delete("/user", (req, res, next) =>
+        app.Delete("/user", async Task (req, res, next) =>
         {
-            res.Send("Got a POST request");
+            await res.Send("Got a POST request");
         });
 
-        app.Listen(port, () =>
+        await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

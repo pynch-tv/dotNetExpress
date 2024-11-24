@@ -1,27 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
+﻿using System.Collections.Specialized;
 using System.Net;
-using System.Net.Http;
+using System.Net.Sockets;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
 using dotNetExpress.Overrides;
 
 namespace dotNetExpress;
 
-public class Request
+/// <summary>
+/// 
+/// </summary>
+/// <param name="app"></param>
+public class Request(Express app)
 {
     public MessageBodyStreamReader StreamReader = null;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="app"></param>
-    public Request(Express app)
-    {
-        App = app;
-    }
 
     #region Properties
 
@@ -30,14 +22,24 @@ public class Request
     /// res.app is identical to the req.app property in the request object.
     /// </summary>
     /// <returns></returns>
-    public Express App { get; private set; }
-    
+    public Express App { get; private set; } = app;
+
     /// <summary>
     /// The URL path on which a router instance was mounted.
     /// The req.baseUrl property is similar to the mountpath property of the app object,
     /// except app.mountpath returns the matched path pattern(s).
     /// </summary>
     public string BaseUrl;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Socket Socket;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Socket Connection { get { return Socket; } } 
 
     /// <summary>
     /// Contains key-value pairs of data submitted in the request body. By default,
@@ -67,9 +69,11 @@ public class Request
     /// <summary>
     /// 
     /// </summary>
-    public readonly NameValueCollection Headers = new();
+    public readonly NameValueCollection Headers = [];
 
     /// <summary>
+    /// 
+    /// 
     /// Contains the host derived from the HostName HTTP header.
     /// </summary>
     public string Host;
@@ -124,7 +128,7 @@ public class Request
     /// For example, if you have the route /user/:name, then the “name” property is available
     /// as req.params.name. This object defaults to {}.
     /// </summary>
-    public NameValueCollection Params = new();
+    public NameValueCollection Params = [];
 
     /// <summary>
     /// Contains the path part of the request URL.
@@ -145,7 +149,7 @@ public class Request
     /// in the route. When query parser is set to disabled, it is an empty object {},
     /// otherwise it is the result of the configured query parser.
     /// </summary>
-    public NameValueCollection Query = new();
+    public NameValueCollection Query = [];
 
     /// <summary>
     /// This property holds a reference to the response object that relates to this request object.
@@ -205,7 +209,7 @@ public class Request
     /// <returns></returns>
     public string Accepts(string type)
     {
-        return Accepts(new[] { type });
+        return Accepts([type]);
     }
 
     public string Accepts(string[] types)
@@ -266,21 +270,11 @@ public class Request
     /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
-    public string Is(string type)
+    public bool Is(string type)
     {
-        return "";
-    }
-
-    /// <summary>
-    /// Deprecated. Use either req.params, req.body or req.query, as applicable.
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="defaultValue"></param>
-    /// <returns></returns>
-    [Obsolete("Use either req.params, req.body or req.query, as applicable.")]
-    public string Param(string name, string defaultValue)
-    {
-        return "";
+        var ct = Headers["content-type"];
+        if (ct == null) return false;
+        return ct.Equals(type, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -294,88 +288,4 @@ public class Request
     public Range Range(int size, RangeOptions options = null) => new();
 
     #endregion
-
-    /// <summary>
-    /// 
-    /// </summary>
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="app"></param>
-    /// <param name="headerLines"></param>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    internal static bool TryParse(Express app, IEnumerable<string> headerLines, out Request request)
-    {
-        // create out variable
-        request = new Request(app);
-
-        if (!headerLines.Any()) return false;
-
-        using var enumerator = headerLines.GetEnumerator();
-        enumerator.MoveNext();
-
-        #region First line : Method url Protocol
-
-        var requestLine = enumerator.Current;
-        if (null == requestLine) return false;
-
-        var requestLineParts = requestLine.Split(' ');
-        if (requestLineParts.Length != 3)
-            throw new HttpProtocolException(500, "First line must consists of 3 parts",
-                new ProtocolViolationException("First line must consists of 3 parts"));
-
-        request.Method = HttpMethod.Parse(requestLineParts[0]);
-        request.OriginalUrl = new Uri(requestLineParts[1], UriKind.Relative);
-        var idx = requestLineParts[1].LastIndexOf('?');
-        if (idx > -1)
-        {
-            var queries = requestLineParts[1][(idx + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var query in queries)
-            {
-                var queryParts = query.Split('=', StringSplitOptions.RemoveEmptyEntries);
-                if (queryParts.Length != 2) throw new UriFormatException($"Query part is malformatted: {query}");
-
-                request.Query.Add(queryParts[0], Uri.UnescapeDataString(queryParts[1]));
-            }
-
-            request.Path = requestLineParts[1][..idx];
-        }
-        else
-            request.Path = requestLineParts[1];
-
-        idx = requestLineParts[2].IndexOf('/');
-        request.Protocol = requestLineParts[2][..idx].ToLower();
-        request.HttpVersion = new Version(requestLineParts[2][++idx..]);
-
-        #endregion
-
-        #region Headers
-
-        request.Headers.Clear();
-        while (enumerator.MoveNext())
-        {
-            var headerLine = enumerator.Current;
-            if (null == headerLine) continue;
-
-            var headerPair = headerLine.Split(":", 2, StringSplitOptions.TrimEntries);
-            if (headerPair.Length != 2)
-                throw new HttpProtocolException(500, "HeaderLine must consist of 2 parts",
-                    new ProtocolViolationException("HeaderLine must consist of 2 parts"));
-
-            // header in case insensitive (see 
-            request.Headers.Add(headerPair[0].Trim().ToLower(), headerPair[1].Trim());
-        }
-
-        request.Host = request.Headers["host"];
-        request.Hostname = request.Headers["host"]?.Split(':')[0];
-
-        if (null != request.Headers["X-Requested-With"])
-            request.Xhr = request.Headers["X-Requested-With"]!.Equals("XMLHttpRequest");
-
-        #endregion
-
-        return true;
-    }
 }

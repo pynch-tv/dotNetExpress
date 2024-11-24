@@ -4,9 +4,9 @@ namespace dotNetExpress.Delegates;
 
 public delegate void NextCallback(ExpressException err = null);
 
-public delegate void ErrorCallback(ExpressException err, Request request, Response response, NextCallback next = null);
+public delegate Task ErrorCallback(ExpressException err, Request req, Response res, NextCallback next = null);
 
-public delegate void MiddlewareCallback(Request request, Response response, NextCallback next = null);
+public delegate Task MiddlewareCallback(Request req, Response res, NextCallback next = null);
 
 public delegate void ListenCallback();
 

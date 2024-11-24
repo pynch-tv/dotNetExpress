@@ -23,21 +23,18 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Represents the binary data of a single parameter extracted from a multipart/form-data stream.
-	/// </summary>
-	/// <remarks>
-	///     For our purposes a "parameter" is defined as any non-file data
-	///     in the multipart/form-data stream.
-	/// </remarks>
-	public class ParameterPartBinary
+    /// <summary>
+    ///     Represents the binary data of a single parameter extracted from a multipart/form-data stream.
+    /// </summary>
+    /// <remarks>
+    ///     For our purposes a "parameter" is defined as any non-file data
+    ///     in the multipart/form-data stream.
+    /// </remarks>
+    public class ParameterPartBinary
 	{
 		/// <summary>
 		///     Initializes a new instance of the <see cref="ParameterPartBinary" /> class.

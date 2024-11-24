@@ -11,13 +11,13 @@ internal partial class Examples
         // add req.session cookie support
         app.Use(cookieSession({ secret: 'manny is cool' }));
 
-        app.Get("/", (req, res, next) =>
+        app.Get("/", async Task (req, res, next) =>
         {
             req.Session.count = (req.Session.count || 0) + 1
             res.Send('viewed ' + req.Session.count + ' times\n')
         });
 
-        app.Listen(port, () =>
+        await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

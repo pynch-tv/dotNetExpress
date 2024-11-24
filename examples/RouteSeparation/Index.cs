@@ -3,7 +3,7 @@
 internal partial class Examples
 {
 
-    internal static void RouteSeparation()
+    internal static async Task RouteSeparation()
     {
         var app = new Express();
         const int port = 8080;
@@ -25,7 +25,7 @@ internal partial class Examples
 
         app.Get("/posts", Post.List);
 
-        app.Listen(port, () =>
+        _ = await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

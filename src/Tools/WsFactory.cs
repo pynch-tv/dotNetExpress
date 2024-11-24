@@ -1,9 +1,8 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace dotNetExpress;
+namespace dotNetExpress.Tools;
 
 public static class WsFactory
 {
@@ -28,8 +27,8 @@ public static class WsFactory
     /// <returns></returns>
     public static bool IsUpgradeRequest(Request req)
     {
-        return (string.Equals(req.Get("connection"), "Upgrade", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(req.Get("upgrade"), "websocket", StringComparison.OrdinalIgnoreCase));
+        return string.Equals(req.Get("connection"), "Upgrade", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(req.Get("upgrade"), "websocket", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -37,7 +36,7 @@ public static class WsFactory
     /// </summary>
     /// <param name="req"></param>
     /// <param name="res"></param>
-    public static void SendUpgradeResponse(Request req, Response res)
+    public static async Task SendUpgradeResponse(Request req, Response res)
     {
         var key = req.Get("sec-websocket-key");
 
@@ -45,6 +44,8 @@ public static class WsFactory
         res.Set("Connection", "Upgrade");
         res.Set("Sec-WebSocket-Accept", HashKey(key));
 
-        res.WriteHead(HttpStatusCode.SwitchingProtocols);
+        await res.WriteHead(HttpStatusCode.SwitchingProtocols);
+
+        req.Protocol = "ws";
     }
 }

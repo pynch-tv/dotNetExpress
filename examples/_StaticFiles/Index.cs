@@ -4,7 +4,7 @@ namespace dotNetExpress.examples;
 
 internal partial class Examples
 {
-    internal static void StaticFiles()
+    internal static async Task StaticFiles()
     {
         var app = new Express();
         const int port = 8080;
@@ -34,7 +34,7 @@ internal partial class Examples
         // this will allow "GET /style.css" instead of "GET /css/style.css":
         //app.Use(Express.Static(Path.Combine(__dirname, "public", "css")));
 
-        app.Listen(port, () =>
+        await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

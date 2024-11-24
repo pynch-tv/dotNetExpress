@@ -1,6 +1,4 @@
 ﻿using dotNetExpress.Exceptions;
-using System;
-using System.IO;
 using System.Reflection;
 
 namespace dotNetExpress.Middlewares;

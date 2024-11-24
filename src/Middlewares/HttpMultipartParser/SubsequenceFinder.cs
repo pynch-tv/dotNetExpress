@@ -24,15 +24,13 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System;
-
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to find a subsequence within a
-	///     sequence.
-	/// </summary>
-	public class SubsequenceFinder
+    /// <summary>
+    ///     Provides methods to find a subsequence within a
+    ///     sequence.
+    /// </summary>
+    public class SubsequenceFinder
 	{
 		#region Public Methods and Operators
 
@@ -69,9 +67,9 @@ namespace HttpMultipartParser
 			if (needle.Length > haystack.Length) return SEQUENCE_NOT_FOUND;
 			if (haystackLength > haystack.Length || haystackLength < 1) throw new ArgumentException("Length must be between 1 and the length of the haystack.");
 
-			var currentIndex = 0;
-			var end = haystackLength - needle.Length; // past here no match is possible
-			var firstByte = needle[0]; // cached to tell compiler there's no aliasing
+			int currentIndex = 0;
+			int end = haystackLength - needle.Length; // past here no match is possible
+			byte firstByte = needle[0]; // cached to tell compiler there's no aliasing
 
 			while (currentIndex <= end)
 			{
@@ -79,7 +77,7 @@ namespace HttpMultipartParser
 				if (haystack[currentIndex] == firstByte)
 				{
 					// scan for rest of sequence
-					for (var offset = 1; ; ++offset)
+					for (int offset = 1; ; ++offset)
 					{
 						if (offset == needle.Length)
 						{ // full sequence matched?

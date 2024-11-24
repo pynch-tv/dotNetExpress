@@ -1,15 +1,13 @@
-using System.Collections.Generic;
-
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides methods to parse a
-	///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
-	///         <c>multipart/form-data</c>
-	///     </see>
-	///     stream into it's parameters and file data.
-	/// </summary>
-	public interface IMultipartFormBinaryDataParser
+    /// <summary>
+    ///     Provides methods to parse a
+    ///     <see href="http://www.ietf.org/rfc/rfc2388.txt">
+    ///         <c>multipart/form-data</c>
+    ///     </see>
+    ///     stream into it's parameters and file data.
+    /// </summary>
+    public interface IMultipartFormBinaryDataParser
 	{
 		/// <summary>
 		///     Gets the mapping of parameters parsed files. The name of a given field

@@ -2,7 +2,7 @@
 
 internal partial class Examples
 {
-    internal static void MultiRouter()
+    internal static async Task MultiRouter()
     {
         var app = new Express();
         const int port = 8080;
@@ -13,23 +13,23 @@ internal partial class Examples
         app.Use("/api/v1", apiv1);
         app.Use("/api/v2", apiv2);
 
-        apiv1.Get("/", (req, res, next) =>
+        apiv1.Get("/", async Task (req, res, next) =>
         {
-            res.Send("Hello World from api v1.");
+            await res.Send("Hello World from api v1.");
         });
 
-        apiv2.Get("/", (req, res, next) =>
+        apiv2.Get("/", async Task (req, res, next) =>
         {
-            res.Send("Hello World from api v2.");
+            await res.Send("Hello World from api v2.");
         });
 
 
-        app.Get("/", (req, res, next) =>
+        app.Get("/", async Task (req, res, next) =>
         {
-            res.Send("Hello World from root route.");
+            await res.Send("Hello World from root route.");
         });
 
-        app.Listen(port, () =>
+        await app.Listen(port, () =>
         {
             Console.WriteLine($"Example app listening on port {port}");
         });

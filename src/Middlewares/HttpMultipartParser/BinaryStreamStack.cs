@@ -24,18 +24,15 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace HttpMultipartParser
 {
-	/// <summary>
-	///     Provides character based and byte based stream-like read operations over multiple
-	///     streams and provides methods to add data to the front of the buffer.
-	/// </summary>
-	public class BinaryStreamStack
+    /// <summary>
+    ///     Provides character based and byte based stream-like read operations over multiple
+    ///     streams and provides methods to add data to the front of the buffer.
+    /// </summary>
+    public class BinaryStreamStack
 	{
 		#region Fields
 
@@ -155,7 +152,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public int Read()
 		{
-			var top = streams.Peek();
+			BinaryReader top = streams.Peek();
 
 			int value;
 			while ((value = top.Read()) == -1)
@@ -199,11 +196,11 @@ namespace HttpMultipartParser
 
 			// Read through all the stream until we exhaust them
 			// or until count is satisfied
-			var amountRead = 0;
-			var top = streams.Peek();
+			int amountRead = 0;
+			BinaryReader top = streams.Peek();
 			while (amountRead < count && streams.Any())
 			{
-				var read = top.Read(buffer, index + amountRead, count - amountRead);
+				int read = top.Read(buffer, index + amountRead, count - amountRead);
 				if (read == 0)
 				{
 					if ((top = NextStream()) == null)
@@ -245,11 +242,11 @@ namespace HttpMultipartParser
 
 			// Read through all the stream until we exhaust them
 			// or until count is satisfied
-			var amountRead = 0;
-			var top = streams.Peek();
+			int amountRead = 0;
+			BinaryReader top = streams.Peek();
 			while (amountRead < count && streams.Any())
 			{
-				var read = top.Read(buffer, index + amountRead, count - amountRead);
+				int read = top.Read(buffer, index + amountRead, count - amountRead);
 				if (read == 0)
 				{
 					if ((top = NextStream()) == null)
@@ -299,17 +296,17 @@ namespace HttpMultipartParser
 
 			// This is horribly inefficient, consider profiling here if
 			// it becomes an issue.
-			var top = streams.Peek();
-			var ignore = CurrentEncoding.GetBytes(new[] { '\r' });
-			var search = CurrentEncoding.GetBytes(new[] { '\n' });
-			var searchPos = 0;
+			BinaryReader top = streams.Peek();
+			byte[] ignore = CurrentEncoding.GetBytes(new[] { '\r' });
+			byte[] search = CurrentEncoding.GetBytes(new[] { '\n' });
+			int searchPos = 0;
 			using (var builder = Utilities.MemoryStreamManager.GetStream($"{typeof(BinaryStreamStack).FullName}.{nameof(ReadByteLine)}"))
 			{
 				while (true)
 				{
 					// First we need to read a byte from one of the streams
 					var bytes = Utilities.ArrayPool.Rent(search.Length);
-					var amountRead = top.Read(bytes, 0, search.Length);
+					int amountRead = top.Read(bytes, 0, search.Length);
 					while (amountRead == 0)
 					{
 						streams.Pop();
@@ -325,7 +322,7 @@ namespace HttpMultipartParser
 					}
 
 					// Now we've got some bytes, we need to check it against the search array.
-					for (var i = 0; i < search.Length; i++)
+					for (int i = 0; i < search.Length; i++)
 					{
 						var b = bytes[i];
 
@@ -344,7 +341,7 @@ namespace HttpMultipartParser
 							// not part of the newline sequence
 							if (searchPos != 0)
 							{
-								var append = search.Take(searchPos).ToArray();
+								byte[] append = search.Take(searchPos).ToArray();
 								builder.Write(append, 0, append.Length);
 							}
 
@@ -389,7 +386,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		public string ReadLine(out bool hitStreamEnd)
 		{
-			var result = ReadByteLine(out var foundEnd);
+			byte[] result = ReadByteLine(out bool foundEnd);
 			hitStreamEnd = foundEnd;
 
 			if (result == null)
@@ -414,7 +411,7 @@ namespace HttpMultipartParser
 		/// </returns>
 		private BinaryReader NextStream()
 		{
-			var top = streams.Pop();
+			BinaryReader top = streams.Pop();
 			top.Dispose();
 
 			return streams.Any() ? streams.Peek() : null;

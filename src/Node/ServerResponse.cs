@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Specialized;
-using System.IO;
-using System.Linq;
+﻿using System.Collections.Specialized;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -18,7 +16,7 @@ public class ServerResponse
 
     protected HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
-    protected readonly NameValueCollection _headers = new();
+    protected readonly NameValueCollection _headers = [];
 
     /// <summary>
     /// Constructor
@@ -30,6 +28,16 @@ public class ServerResponse
         HeadersSent = false;
         _chunked = false;
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Socket Socket;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Socket Connection { get { return Socket; } }
 
     /// <summary>
     /// 
@@ -105,12 +113,12 @@ public class ServerResponse
     /// </summary>
     /// <param name="buffer"></param>
     /// <param name="encoding"></param>
-    protected bool Write(string buffer, Encoding encoding = null)
+    public async Task<bool> Write(string buffer, Encoding encoding = null)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
         if (!HeadersSent)
-            WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+            await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
 
         encoding ??= Encoding.UTF8;
 
@@ -119,15 +127,21 @@ public class ServerResponse
 
         if (bodyLength <= 0) return true;
 
-        _stream.Write(body, 0, bodyLength);
-        _stream.Flush();
+        await _stream.WriteAsync(body.AsMemory(0, bodyLength));
+        await _stream.FlushAsync();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
         return true;
     }
 
-    protected bool Write(byte[] buffer, int length)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="buffer"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
+    protected async Task<bool> Write(byte[] buffer, int length)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
@@ -139,18 +153,18 @@ public class ServerResponse
                 SetHeader("Transfer-Encoding", "chunked");
             }
 
-            WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+            await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
         }
 
         if (_chunked)
-            Write($"{length:X}\r\n");
+            await Write($"{length:X}\r\n");
 
-        _stream.Write(buffer, 0, length);
+        await _stream.WriteAsync(buffer, 0, length);
 
         if (_chunked)
-            _stream.Write(new byte[] {0xd, 0xa}, 0, 2);
+            await _stream.WriteAsync(new byte[] { 0xd, 0xa }, 0, 2);
 
-      //  _stream.Flush();
+        await _stream.FlushAsync();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
@@ -162,49 +176,66 @@ public class ServerResponse
     /// like 404. The last argument, headers, are the response headers. Optionally one can give
     /// a human-readable statusMessage as the second argument.
     /// </summary>
-
-    private void WriteHead()
+    private async Task WriteHead()
     {
-        WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+        await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
     }
 
-    public virtual void WriteHead(HttpStatusCode statusCode)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="statusCode"></param>
+    public virtual async Task WriteHead(HttpStatusCode statusCode)
     {
-        WriteHead(statusCode, statusCode.ToString());
+        await WriteHead(statusCode, statusCode.ToString());
     }
 
-    public virtual void WriteHead(HttpStatusCode statusCode, NameValueCollection headers = null)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="statusCode"></param>
+    /// <param name="headers"></param>
+    public virtual async Task WriteHead(HttpStatusCode statusCode, NameValueCollection headers = null)
     {
-        WriteHead(statusCode, statusCode.ToString(), headers);
+        await WriteHead(statusCode, statusCode.ToString(), headers);
     }
 
-    public virtual void WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection headers = null)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="statusCode"></param>
+    /// <param name="statusMessage"></param>
+    /// <param name="headers"></param>
+    public virtual async Task WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection headers = null)
     {
-        var headerContent = new StringBuilder();
+        if (null != headers)
+            foreach (string key in headers)
+                SetHeader(key, headers[key]);
 
         if (string.IsNullOrEmpty(statusMessage))
             statusMessage = _httpStatusCode.ToString();
+
+        var headerContent = new StringBuilder();
 
         // First line of HTTP
         headerContent.AppendLine($"HTTP/1.1 {(int)statusCode} {Regex.Replace(statusMessage, "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled)}");
 
         // construct/append headers
         if (_sendDate)
-            SetHeader("Date", DateTime.Now.ToUniversalTime().ToString("r"));
+            if (!HasHeader("Date"))
+                SetHeader("Date", DateTime.Now.ToUniversalTime().ToString("r"));
 
-        #region stringify headers
+        #region Stringify headers
 
         foreach (string key in _headers)
             headerContent.AppendLine($"{key}: {_headers[key]}");
-
-        if (null != headers)
-            foreach (string key in headers)
-                headerContent.AppendLine($"{key}: {_headers[key]}");
 
         // last header line is empty
         headerContent.AppendLine();
 
         #endregion
+
+        #region Write StringBuilder
 
         // Prepare to send it out
         var headerString = headerContent.ToString();
@@ -212,8 +243,10 @@ public class ServerResponse
         var headerLength = Encoding.UTF8.GetByteCount(headerString);
 
         // write out the headers in 1 write
-        _stream.Write(header, 0, headerLength);
- //       _stream.Flush();
+        await _stream.WriteAsync(header.AsMemory(0, headerLength));
+        await _stream.FlushAsync();
+
+        #endregion
 
         HeadersSent = true;
     }
@@ -225,10 +258,10 @@ public class ServerResponse
     /// </summary>
     /// <param name="data"></param>
     /// <param name="encoding"></param>
-    public void End(string data, Encoding encoding = null)
+    public async Task End(string data, Encoding encoding = null)
     {
-        Write(data, encoding ?? Encoding.UTF8);
-        End();
+        await Write(data, encoding ?? Encoding.UTF8);
+        await End();
     }
 
     /// <summary>
@@ -236,13 +269,13 @@ public class ServerResponse
     /// that server should consider this message complete. The method, response.end(),
     /// MUST be called on each response.
     /// </summary>
-    public void End()
+    public async Task End()
     {
         if (_chunked)
-            Write($"0\r\n\r\n");
+            await Write($"0\r\n\r\n");
 
         if (!HeadersSent)
-            WriteHead();
+            await WriteHead();
     }
 
 }
