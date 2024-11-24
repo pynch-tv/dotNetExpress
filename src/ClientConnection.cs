@@ -1,77 +1,35 @@
 ﻿using dotNetExpress.Overrides;
 using System.Net.Sockets;
 using System.Net;
+using System.Diagnostics;
 
 namespace dotNetExpress;
 
 internal class Client
 {
-    /// <summary>
-    /// KeepALive allows HTTP clients to re-use connections for multiple requests, and relies on timeout configurations
-    /// on both the client and target server to decide when to close open TCP sockets.
-    ///
-    /// There is overhead in establishing a new TCP connection (DNS lookups, TCP handshake, SSL/TLS handshake, etc).
-    /// Without a keep-alive, every HTTP request has to establish a new TCP connection, and then close the connection
-    /// once the response has been sent/received. A keep-alive allows an existing TCP connection to be re-used for
-    /// multiple requests/responses, thus avoiding all of that overhead. That is what makes the connection "persistent".
-    /// </summary>
-    public bool KeepAlive = true;
-
-    /// <summary>
-    /// An integer that is the time in seconds that the host will allow an idle connection to remain open before it is closed.
-    /// A connection is idle if no data is sent or received by a host. A host may keep an idle connection open for longer than
-    /// timeout seconds, but the host should attempt to retain a connection for at least timeout seconds.
-    /// </summary>
-    public int KeepAliveTimeout = 2; // timing in seconds
-
     public async Task Connection(Express express, TcpClient tcpClient)
     {
         try
         {
             var stream = tcpClient.GetStream();
 
-            stream.ReadTimeout = KeepAliveTimeout * 1000; // KeepAliveTimeout is in seconds, ReadTimeout in milliseconds
-            if (stream.ReadTimeout == 0) KeepAlive = false;
-
-            while (true)
+            while (tcpClient.Connected)
             {
-                Request req = null;
+                if (!GetRequest(express, tcpClient, out Request req))
+                    throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
 
-                try
+                if (req == null || req.Method == null)
+                    throw new HttpProtocolException(500, "Error while parsing reuqest", new ProtocolViolationException("Unable to construct Request"));
+
+                stream.ReadTimeout = express.KeepAliveTimeout * 1000; 
+
+                if (!string.IsNullOrEmpty(req.Get("Content-Length")))
                 {
-                    if (!GetRequest(express, tcpClient, out req))
-                    {
-                        throw new HttpProtocolException(500, "Unable to construct Request",
-                            new ProtocolViolationException("Unable to construct Request"));
-                    }
+                    var contentLength = int.Parse(req.Get("Content-Length"));
 
-                    // If the request header has an explicit request to close the connection, set
-                    // the KeepAlive of this request to false
-                    var connection = req.Get("Connection");
-                    if (connection != null)
-                    {
-                        KeepAlive = connection switch
-                        {
-                            "close" => false,
-                            "keep-alive" => true,
-                            _ => KeepAlive
-                        };
-                    }
-
-                    if (!string.IsNullOrEmpty(req.Get("Content-Length")))
-                    {
-                        var contentLength = int.Parse(req.Get("Content-Length"));
-
-                        // When a content-length is available, a stream is provided in Request
-                        req.StreamReader = new MessageBodyStreamReader(stream);
-                        req.StreamReader.SetLength(contentLength);
-                    }
-                }
-                catch (IOException) // includes IOException when timeout
-                {
-                    tcpClient.Close();
-
-                    return;
+                    // When a content-length is available, a stream is provided in Request
+                    req.StreamReader = new MessageBodyStreamReader(stream);
+                    req.StreamReader.SetLength(contentLength);
                 }
 
                 await express.Dispatch(req, req.Res);
@@ -86,32 +44,39 @@ internal class Client
                 {
                     break; // Server-Sent Events
                 }
-                else if (KeepAlive)
+                else if (req.Res.Get("Connection") != null && req.Res.Get("Connection").Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
                 {
                     // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
                     // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater
                     // flexibility than a TcpClient offers, consider using AcceptSocket.
+                    //Debug.WriteLine($"Lets keep the connection open");
                     continue;
                 }
                 else
                 {
-                    // Do not keep the connection alive
-                    tcpClient.Close();
+                    // Do not keep the connection alive, leave the while loop
                     break;
                 }
             }
         }
         catch (HttpProtocolException e)
         {
+            Debug.WriteLine($"HttpProtocolException {e.Message}");
             // Typical exception when the client disconnects prematurely
             // Assumes socket closes automatically
         }
         catch (IOException e)
         {
-            //tcpClient.Close();
+            Debug.WriteLine($"IOException {e.Message}");
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"Exception {e.Message}");
         }
         finally
         {
+            Debug.WriteLine($"Client Connection finally");
+            tcpClient.Close();
         }
     }
 
@@ -119,7 +84,7 @@ internal class Client
     /// 
     /// </summary>
     /// <param name="app"></param>
-    /// <param name="stream"></param>
+    /// <param name="tcpClient"></param>
     /// <param name="req"></param>
     /// <returns></returns>
     /// <exception cref="HttpProtocolException"></exception>
@@ -133,7 +98,6 @@ internal class Client
 
         using (var streamReader = new MessageBodyStreamReader(tcpClient.GetStream()))
         {
-
             while (true)
             {
                 // Readline is a blocking IO call. If it takes to long for data to come in,
@@ -194,6 +158,17 @@ internal class Client
 
         // Construct Response whilst we are at it
         req.Res = new Response(app, tcpClient.GetStream());
+
+        //
+        if (req.HttpVersion.Equals(new Version("1.0")))
+        {
+            req.Res.Set("Connection", "close");
+        }
+        else if (req.HttpVersion.Equals(new Version("1.1")))
+        {
+            req.Res.Set("Connection", "keep-alive");
+            req.Res.Set("Keep-Alive", $"timeout={app.KeepAliveTimeout}"); // Keep-Alive is in *seconds*
+        }
 
         req.Socket = tcpClient.Client;
         req.Res.Socket = tcpClient.Client;

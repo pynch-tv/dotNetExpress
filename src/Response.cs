@@ -548,15 +548,11 @@ public class Response : ServerResponse
         }
         else
         {
-            if (App.KeepAlive)
-            {
-                if (!HasHeader("Connection"))
-                    SetHeader("Connection", "keep-alive");
-                if (!HasHeader("Keep-Alive"))
-                    SetHeader("Keep-Alive", $"timeout={App.KeepAliveTimeout}"); // Keep-Alive is in *seconds*
-            }
-            else
-                SetHeader("Connection", "Close");
+            //if (App.KeepAlive)
+            //{
+            //}
+            //else
+            //    SetHeader("Connection", "Close");
         }
 
         await base.WriteHead(statusCode, statusMessage, headers);

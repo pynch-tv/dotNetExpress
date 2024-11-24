@@ -9,9 +9,7 @@ namespace dotNetExpress;
 /// </summary>
 public class Server : TcpListener
 {
-    private Thread _tcpListenerThread;
-
-    private Express _express;
+    private Thread? _tcpListenerThread;
 
     private CancellationTokenSource _cancellation = new();
 
@@ -45,14 +43,31 @@ public class Server : TcpListener
 
     #endregion
 
+    #region Events
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public event EventHandler<TcpClient> HandleConnection;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="tcpClient"></param>
+    private void RaiseHandleConnection(TcpClient tcpClient)
+    {
+        var handler = HandleConnection;
+        handler?.Invoke(this, tcpClient);
+    }
+
+    #endregion
+
     /// <summary>
     /// 
     /// </summary>
     /// <param name="express"></param>
     public async Task Begin(Express express)
     {
-        _express = express;
-
         Start();
 
         _tcpListenerThread = new Thread(() =>
@@ -77,14 +92,13 @@ public class Server : TcpListener
                 {
                     while (keepGoing && tcpClientTasks.Count < express.MaxConcurrentListeners)
                     {
-                        var AwaiterTask = Task.Run(async () =>
+                        var awaiterTask = Task.Run(async () =>
                         {
                             try
                             {
                                 Debug.WriteLine($"Awaiting new connection");
 
-                                var tcpClient = await AcceptTcpClientAsync(_cancellation.Token);
-                                await new Client().Connection(_express, tcpClient);
+                                ProcessMessagesFromClient(await AcceptTcpClientAsync(_cancellation.Token));
                             }
                             catch (OperationCanceledException)
                             {
@@ -96,7 +110,7 @@ public class Server : TcpListener
                                 keepGoing = false;
                             }
                         });
-                        tcpClientTasks.Add(AwaiterTask);
+                        tcpClientTasks.Add(awaiterTask);
                     }
 
                     var RemoveAtIndex = Task.WaitAny([.. tcpClientTasks], awaiterTimeoutInMS);
@@ -107,8 +121,9 @@ public class Server : TcpListener
                     }
                 }
             }
-            catch (Exception) 
+            catch (Exception e) 
             {
+                Debug.WriteLine($"Inner loop exception: {e.Message}");
             }
 
             Debug.WriteLine("Listener stopped");
@@ -117,6 +132,20 @@ public class Server : TcpListener
         _tcpListenerThread.Start();
         Debug.WriteLine("Listener starting");
     }
+    static int counter = 0;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="tcpClient"></param>
+    protected virtual void ProcessMessagesFromClient(TcpClient tcpClient)
+    {
+        if (!tcpClient.Connected)
+            return;
+
+        RaiseHandleConnection(tcpClient);
+    }
+
 
     /// <summary>
     /// 

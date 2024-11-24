@@ -12,27 +12,69 @@ public class Express : IDisposable
 {
     #region Properties
 
+    /// <summary>
+    /// The app.locals object has properties that are local variables within the application,
+    /// and will be available in templates rendered with res.render.
+    /// </summary>
+    public NameValueCollection locals => _locals;
+
+    /// <summary>
+    /// The app.MountPath property contains one or more path patterns on which a sub-app was mounted.
+    /// </summary>
+    public string? MountPath;
+
+    /// <summary>
+    /// The application’s in-built instance of router. This is created lazily, on first access.
+    /// </summary>
+    public Router? router => _router;
+
+    /// <summary>
+    /// 
+    /// </summary>
     private readonly Router _router = new();
 
+    /// <summary>
+    /// 
+    /// </summary>
     internal readonly Dictionary<string, RenderEngineCallback> _engines = [];
 
+    /// <summary>
+    /// 
+    /// </summary>
     private readonly NameValueCollection _settings = [];
 
+    /// <summary>
+    /// 
+    /// </summary>
     private readonly NameValueCollection _locals = [];
 
-    internal Server Listener;
+    /// <summary>
+    /// 
+    /// </summary>
+    internal Server? Listener;
 
+    /// <summary>
+    /// 
+    /// </summary>
     private bool _disposed;
 
     /// <summary>
-    /// 
+    /// KeepALive allows HTTP clients to re-use connections for multiple requests, and relies on timeout configurations
+    /// on both the client and target server to decide when to close open TCP sockets.
+    ///
+    /// There is overhead in establishing a new TCP connection (DNS lookups, TCP handshake, SSL/TLS handshake, etc).
+    /// Without a keep-alive, every HTTP request has to establish a new TCP connection, and then close the connection
+    /// once the response has been sent/received. A keep-alive allows an existing TCP connection to be re-used for
+    /// multiple requests/responses, thus avoiding all of that overhead. That is what makes the connection "persistent".
     /// </summary>
-    public bool KeepAlive { get { return KeepAliveTimeout != 0; } }
+    //public bool KeepAlive = true;
 
     /// <summary>
-    /// 
+    /// An integer that is the time in seconds that the host will allow an idle connection to remain open before it is closed.
+    /// A connection is idle if no data is sent or received by a host. A host may keep an idle connection open for longer than
+    /// timeout seconds, but the host should attempt to retain a connection for at least timeout seconds.
     /// </summary>
-    public int KeepAliveTimeout = 2000;
+    public int KeepAliveTimeout = 2;
 
     /// <summary>
     /// 
@@ -248,36 +290,6 @@ public class Express : IDisposable
 
     #endregion
 
-    #region Application Properties
-
-    /// <summary>
-    /// The app.locals object has properties that are local variables within the application,
-    /// and will be available in templates rendered with res.render.
-    /// </summary>
-    public NameValueCollection locals => _locals;
-
-    /// <summary>
-    /// The app.MountPath property contains one or more path patterns on which a sub-app was mounted.
-    /// </summary>
-    public string MountPath;
-
-    /// <summary>
-    /// The application’s in-built instance of router. This is created lazily, on first access.
-    /// </summary>
-    public Router router => _router;
-
-    #endregion
-
-    #region Application Events
-
-    /// <summary>
-    /// The mount event is fired on a sub-app, when it is mounted on a parent app.
-    /// The parent app is passed to the callback function.
-    /// </summary>
-    public event EventHandler mount;
-
-    #endregion
-
     #region Application Methods
 
     /// <summary>
@@ -397,6 +409,15 @@ public class Express : IDisposable
         //    port = 0;
 
         Listener = new Server(ipAddress, port);
+
+        Listener.HandleConnection += async (sender, tcpClient) =>
+        {
+            Client client = new();
+            await client.Connection(this, tcpClient);
+
+            tcpClient.Close();
+        };
+
         await Listener.Begin(this);
 
         callback?.Invoke();

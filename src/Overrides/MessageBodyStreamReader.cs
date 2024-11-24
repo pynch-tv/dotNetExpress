@@ -62,8 +62,8 @@ public class MessageBodyStreamReader(Stream inner, long bufferSize = 256 * 1024)
         for (; i < buffer.Length; i++)
         {
             var b = inner.ReadByte();
-            if (b == -1) 
-                break;
+            if (b == -1)
+                throw new IOException("inner.ReadByte returns -1");
 
             buffer[i] = (byte)b;
             if (buffer[i] == '\n')
