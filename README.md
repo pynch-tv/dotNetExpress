@@ -26,7 +26,7 @@ static void HelloWorld()
 ```
 More examples in the [Examples](https://github.com/pynch-tv/dotNetExpress/tree/main/examples) folder
 
-## Dependencies
+## Optional Dependencies
 
 Via NuGet:
 - Multipart Parser from [Http-Multipart-Data-Parser](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser)
