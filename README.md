@@ -5,8 +5,6 @@
 
 ### Hello world example
 
-Below is essentially the .Net express app you can create. 
-
 ```cs
 static void HelloWorld()
 {
