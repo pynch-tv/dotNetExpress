@@ -26,6 +26,7 @@ More examples in the [Examples](https://github.com/pynch-tv/dotNetExpress/tree/m
 
 ## Optional Dependencies
 
-Via NuGet:
+When doing Multipart POST
+
 - Multipart Parser from [Http-Multipart-Data-Parser](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser)
 - Microsoft.IO.RecyclableMemoryStream
