@@ -432,14 +432,16 @@ public class Response : ServerResponse
     {
         _httpStatusCode = code;
 
-        var statusMessage = code.ToString();
+        if (code != HttpStatusCode.NoContent)
+        {
+            var statusMessage = code.ToString();
+            var body = Regex.Replace(statusMessage, "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled);
 
-        var body = Regex.Replace(statusMessage, "(?<=[a-z])([A-Z])", " $1", RegexOptions.Compiled);
+            if (!HasHeader("Content-Length"))
+                Set("Content-Length", body.Length);
 
-        if (!HasHeader("Content-Length"))
-            Set("Content-Length", body.Length);
-
-        await Send(Encoding.Default.GetBytes(body));
+            await Send(Encoding.Default.GetBytes(body));
+        }
 
         await End();
     }
