@@ -5,8 +5,6 @@
 
 ### Hello world example
 
-Below is essentially the .Net express app you can create. 
-
 ```cs
 static void HelloWorld()
 {
@@ -26,6 +24,9 @@ static void HelloWorld()
 ```
 More examples in the [Examples](https://github.com/pynch-tv/dotNetExpress/tree/main/examples) folder
 
-## Dependencies
+## Optional Dependencies
 
-None
+When doing Multipart POST
+
+- Multipart Parser from [Http-Multipart-Data-Parser](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser)
+- Microsoft.IO.RecyclableMemoryStream
