@@ -28,4 +28,6 @@ More examples in the [Examples](https://github.com/pynch-tv/dotNetExpress/tree/m
 
 ## Dependencies
 
-Multipart Parser from [Http-Multipart-Data-Parser](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser)
+Via NuGet:
+- Microsoft.IO.RecyclableMemoryStream
+- Multipart Parser from [Http-Multipart-Data-Parser](https://github.com/Http-Multipart-Data-Parser/Http-Multipart-Data-Parser)
