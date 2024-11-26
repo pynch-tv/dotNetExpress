@@ -414,8 +414,6 @@ public class Express : IDisposable
         {
             Client client = new();
             await client.Connection(this, tcpClient);
-
-            tcpClient.Close();
         };
 
         await Listener.Begin(this);

@@ -38,10 +38,12 @@ internal class Client
 
                 if (req.Res.Get("Upgrade") != null && req.Res.Get("Upgrade").Equals("WebSocket", StringComparison.OrdinalIgnoreCase))
                 {
+                    Debug.WriteLine($"websocket upgrade");
                     break; // websocket
                 }
                 else if (req.Res.Get("Content-Type") != null && req.Res.Get("Content-Type").Equals("text/event-stream", StringComparison.OrdinalIgnoreCase))
                 {
+                    Debug.WriteLine($"text/event-stream");
                     break; // Server-Sent Events
                 }
                 else if (req.Res.Get("Connection") != null && req.Res.Get("Connection").Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
@@ -49,33 +51,21 @@ internal class Client
                     // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
                     // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater
                     // flexibility than a TcpClient offers, consider using AcceptSocket.
-                    //Debug.WriteLine($"Lets keep the connection open");
+                    Debug.WriteLine($"Lets keep the connection open");
                     continue;
                 }
                 else
                 {
                     // Do not keep the connection alive, leave the while loop
+                    Debug.WriteLine($"Connection does not need to be kept open");
+                    tcpClient.Close();
                     break;
                 }
             }
         }
-        catch (HttpProtocolException e)
-        {
-            Debug.WriteLine($"HttpProtocolException {e.Message}");
-            // Typical exception when the client disconnects prematurely
-            // Assumes socket closes automatically
-        }
-        catch (IOException e)
-        {
-            Debug.WriteLine($"IOException {e.Message}");
-        }
         catch (Exception e)
         {
             Debug.WriteLine($"Exception {e.Message}");
-        }
-        finally
-        {
-            Debug.WriteLine($"Client Connection finally");
             tcpClient.Close();
         }
     }

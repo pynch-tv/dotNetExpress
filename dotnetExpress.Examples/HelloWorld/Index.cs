@@ -2,7 +2,6 @@
 
 internal partial class Examples
 {
-
     internal static async Task HelloWorld()
     {
         var app = new Express();

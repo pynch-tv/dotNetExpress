@@ -50,7 +50,7 @@ public partial class SseSocket
             if (asyncResult.AsyncState is not Socket clientSocket)
             {
                 Debug.WriteLine($"SSE asyncState error is not socket");
-                return;
+                throw new Exception("SSE asyncState error is not socket");
             }
 
             int bufferSize = clientSocket.EndReceive(asyncResult, out var errorCode);
