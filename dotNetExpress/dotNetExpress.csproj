@@ -5,6 +5,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/lathoub/dotNetExpress</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>express csharp dotnet http-server</PackageTags>
+    <PackageOutputPath>C:\Users\Bart\Documents\nuget-feeds</PackageOutputPath>
+    <Description>Fast, unopinionated, minimalist web framework for dotnet</Description>
+    <Copyright>Pynch 2024</Copyright>
+    <Title>dotnetExpress</Title>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,12 +25,18 @@
   <ItemGroup>
     <None Remove=".gitignore" />
     <None Remove="LICENSE" />
-    <None Remove="README.md" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="HttpMultipartParser" Version="8.4.0" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
