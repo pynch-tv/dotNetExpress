@@ -1,4 +1,3 @@
-![example workflow](https://github.com/pynch-tv/dotNetExpress/actions/workflows/dotnet.yml/badge.svg)
 # .net Express
 
 ## Getting started
