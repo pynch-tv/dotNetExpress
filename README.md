@@ -81,7 +81,7 @@ internal partial class Examples
 }
 ```
 
-More examples in the [Examples](https://github.com/pynch-tv/dotNetExpress/tree/main/examples) folder
+More examples in the [Examples](https://github.com/lathoub/dotNetExpress/tree/main/dotnetExpress.Examples) folder
 
 ## Optional Dependencies
 
