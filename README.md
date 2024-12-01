@@ -4,7 +4,7 @@
 .net Express is a minimal and flexible .NET 8 web application framework that provides a robust set of features for web and mobile applications.
 
 ## Key features
-- same look and feel as node.js Express
+- behaves as node.js Express
 - fast
 - use WebSockets and SSE over the same port
 
