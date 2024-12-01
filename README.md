@@ -34,7 +34,8 @@ internal partial class Examples
             Console.WriteLine($"Example app listening on port {port}");
         });
     }
-}```
+}
+```
 
 ### Multirouter example
 
