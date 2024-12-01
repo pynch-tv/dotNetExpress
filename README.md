@@ -1,6 +1,8 @@
 ![example workflow](https://github.com/lathoub/dotNetExpress/actions/workflows/dotnet.yml/badge.svg)
 # .net Express
 
+.net Express is a minimal and flexible .NET 8 web application framework that provides a robust set of features for web and mobile applications.
+
 ## Getting started
 
 ### Hello world example
