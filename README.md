@@ -1,13 +1,12 @@
 ![example workflow](https://github.com/lathoub/dotNetExpress/actions/workflows/dotnet.yml/badge.svg)
 
-![oie_NHyIgxVTsC9G](https://github.com/user-attachments/assets/f6d11c0e-88ee-42ac-9238-a071bb898cf6)
-
-# .net Express
+# ![oie_NHyIgxVTsC9G](https://github.com/user-attachments/assets/f6d11c0e-88ee-42ac-9238-a071bb898cf6)
 
 .net Express is a minimal and flexible .NET 8 web application framework that provides a robust set of features for web and mobile applications.
 
 ## Key features
-- behaves as node.js Express
+- behaves like node.js Express
+- fully written in .NET 8.0 C#
 - fast
 - use WebSockets and SSE over the same port
 
