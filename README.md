@@ -78,8 +78,8 @@ internal partial class Examples
             Console.WriteLine($"Example app listening on port {port}");
         });
     }
-}```
-
+}
+```
 
 More examples in the [Examples](https://github.com/pynch-tv/dotNetExpress/tree/main/examples) folder
 
