@@ -15,22 +15,26 @@
 ### Hello world example
 
 ```cs
-static void HelloWorld()
+namespace dotNetExpress.examples;
+
+internal partial class Examples
 {
-    var app = new Express();
-    const int port = 8080;
-
-    app.Get("/", (req, res, next) =>
+    internal static async Task HelloWorld()
     {
-        res.Send("Hello World");
-    });
+        var app = new Express();
+        const int port = 8080;
 
-    app.Listen(port, () =>
-    {
-        Console.WriteLine($"Example app listening on port {port}");
-    });
-}
-```
+        app.Get("/", async Task (req, res, next) =>
+        {
+            await res.Send("Hello World");
+        });
+
+        await app.Listen(port, () =>
+        {
+            Console.WriteLine($"Example app listening on port {port}");
+        });
+    }
+}```
 
 ### Multirouter example
 
