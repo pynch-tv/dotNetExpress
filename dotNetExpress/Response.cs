@@ -477,7 +477,11 @@ public class Response : ServerResponse
     public void Set(string field, string value)
     {
         if (!string.IsNullOrEmpty(_headers[field]))
-            _headers[field] += ", " + value;
+        {
+            var content = _headers[field]?.Split(',');
+            if (content != null && !content.Contains(value))   
+                _headers[field] += ", " + value;
+        }
         else
             _headers[field] = value;
     }

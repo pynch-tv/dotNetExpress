@@ -47,6 +47,8 @@ public partial class SseSocket
     {
         try
         {
+            if (asyncResult.IsCompleted) return;
+
             if (asyncResult.AsyncState is not Socket clientSocket)
             {
                 Debug.WriteLine($"SSE asyncState error is not socket");

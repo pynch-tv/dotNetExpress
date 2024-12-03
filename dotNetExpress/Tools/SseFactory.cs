@@ -23,6 +23,7 @@ public static class SseFactory
         res.Set("Content-Type", "text/event-stream");
         res.Set("Connection", "keep-alive");
         res.Set("Cache-Control", "no-cache");
+        res.GetHeaders().Remove("Keep-Alive");
 
         await res.WriteHead(HttpStatusCode.OK);
     }

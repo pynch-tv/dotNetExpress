@@ -82,7 +82,7 @@ public class ServerResponse
     /// are the respective header values. All header names are lowercase.
     /// </summary>
     /// <returns>NameValueCollection</returns>
-    protected NameValueCollection GetHeader()
+    public NameValueCollection GetHeaders()
     {
         return _headers;
     }
