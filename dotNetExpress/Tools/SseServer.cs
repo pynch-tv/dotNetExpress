@@ -41,6 +41,11 @@ public class SseServer
     public int IdleTimeout { get; set; } = 2;
 
     /// <summary>
+    /// Idle JSON message to send to clients.
+    /// </summary>
+    public string IdleMessage { get; set; } = "{}";
+
+    /// <summary>
     /// Idle message to send to clients. Leading : must NOT be included
     /// </summary>
 
@@ -94,6 +99,8 @@ public class SseServer
             {
                 var toRemove = new List<SseSocket>();
 
+                var frameMessage = Encoding.UTF8.GetBytes(IdleMessage);
+
                 foreach (var kvp in _sseSockets)
                 {
                     var sseSocket = kvp.Value;
@@ -101,6 +108,8 @@ public class SseServer
                     {
                         try
                         {
+                            sseSocket.GetSocket().SendAsync(frameMessage);   
+
                             sseSocket.LastAction = DateTime.Now;
                         }
                         catch (Exception e)
