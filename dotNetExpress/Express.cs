@@ -5,6 +5,7 @@ using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotnetExpress.Middlewares.BodyParser;
 using dotnetExpress.Middlewares.ServerStatic;
+using System.Diagnostics;
 
 namespace dotNetExpress;
 
@@ -414,6 +415,9 @@ public class Express : IDisposable
         {
             Client client = new();
             await client.Connection(this, tcpClient);
+
+            var connected = tcpClient.Connected ? "left open" : "closed";
+            Debug.WriteLine($"Connection handled, socket is {connected}");
         };
 
         await Listener.Begin(this);

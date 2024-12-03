@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Net;
 using System.Diagnostics;
+using System.Reflection.PortableExecutable;
 
 namespace dotNetExpress;
 
@@ -15,11 +16,16 @@ internal class Client
 
             while (tcpClient.Connected)
             {
+
+                Debug.WriteLine($"waiting to make a Request object");
+
                 if (!GetRequest(express, tcpClient, out Request req))
                     throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
 
                 if (req == null || req.Method == null)
                     throw new HttpProtocolException(500, "Error while parsing reuqest", new ProtocolViolationException("Unable to construct Request"));
+
+                Debug.WriteLine($"We have a Request object");
 
                 stream.ReadTimeout = express.KeepAliveTimeout * 1000; 
 
@@ -139,6 +145,10 @@ internal class Client
                 }
             }
         }
+
+        Debug.WriteLine($"Headers:");
+        foreach (string header in req.Headers)
+            Debug.WriteLine($"{header} {req.Headers[header]}");
 
         req.Host = req.Headers["host"];
         req.Hostname = req.Headers["host"]?.Split(':')[0];

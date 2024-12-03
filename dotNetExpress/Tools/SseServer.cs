@@ -41,11 +41,6 @@ public class SseServer
     public int IdleTimeout { get; set; } = 2;
 
     /// <summary>
-    /// Idle JSON message to send to clients.
-    /// </summary>
-    public string IdleMessage { get; set; } = "{}";
-
-    /// <summary>
     /// Idle message to send to clients. Leading : must NOT be included
     /// </summary>
 
@@ -99,32 +94,37 @@ public class SseServer
             {
                 var toRemove = new List<SseSocket>();
 
-                var frameMessage = Encoding.UTF8.GetBytes(IdleMessage);
+                var idleMessage = ":\n\n";
+
+                var frameMessage = Encoding.UTF8.GetBytes(idleMessage);
 
                 foreach (var kvp in _sseSockets)
                 {
                     var sseSocket = kvp.Value;
-                    if (DateTime.Now.Subtract(sseSocket.LastAction).TotalSeconds > IdleTimeout)
-                    {
-                        try
-                        {
-                            sseSocket.GetSocket().SendAsync(frameMessage);   
 
-                            sseSocket.LastAction = DateTime.Now;
-                        }
-                        catch (Exception e)
+                    if (!sseSocket.GetSocket().Connected)
+                        toRemove.Add(sseSocket);
+                    else
+                    {
+                        if (DateTime.Now.Subtract(sseSocket.LastAction).TotalSeconds > IdleTimeout)
                         {
-                            Debug.WriteLine($"Socket exception {e.Message}");
-                            toRemove.Add(sseSocket);
+                            try
+                            {
+                                sseSocket.GetSocket().SendAsync(frameMessage);
+
+                                sseSocket.LastAction = DateTime.Now;
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.WriteLine($"SSE Socket exception {e.Message}");
+                                toRemove.Add(sseSocket);
+                            }
                         }
                     }
                 }
 
                 foreach (var client in toRemove)
                     Remove(client);
-
-                if (toRemove.Count > 0)
-                    Debug.WriteLine($"Sockets remaining {_sseSockets.Count}.");
             }
 
             Thread.Sleep(1000);
@@ -158,7 +158,10 @@ public class SseServer
         lock (_sseSockets)
         {
             foreach (var item in _sseSockets.Where(kvp => kvp.Value == value).ToList())
+            {
+                Debug.WriteLine($"SSE Server.Remove: {item.Key}");
                 _sseSockets.Remove(item.Key);
+            }
         }
     }
 
@@ -196,9 +199,6 @@ public class SseServer
 
             foreach (var client in toRemove)
                 Remove(client);
-
-            if (toRemove.Count > 0)
-                Debug.WriteLine($"Sockets remaining {_sseSockets.Count}.");
         }
     }
 }
