@@ -3,7 +3,7 @@
 namespace dotNetExpress.Tools;
 public class WsServer
 {
-    private readonly Dictionary<string, WebSocket> _webSockets = [];
+    private readonly Dictionary<int, WebSocket> _webSockets = [];
 
     private CancellationTokenSource _cancellationTokenSource = new();
 
@@ -110,11 +110,12 @@ public class WsServer
     /// <param name="res"></param>
     public void Add(Request req, Response res)
     {
-        var ws = new WebSocket(this, res.Socket);
-
         lock (_webSockets)
         {
-            _webSockets.Add(req.Path, ws);
+            
+
+            var ws = new WebSocket(this, res.Socket);
+            _webSockets.Add(req.GetHashCode(), ws);
         }
     }
 
