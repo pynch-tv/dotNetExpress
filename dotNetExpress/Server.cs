@@ -140,6 +140,8 @@ public class Server : TcpListener
     /// <param name="tcpClient"></param>
     protected virtual void ProcessMessagesFromClient(TcpClient tcpClient)
     {
+        if (tcpClient.Client.Available == 0)
+            return;
         if (!tcpClient.Connected)
             return;
 
