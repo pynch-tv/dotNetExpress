@@ -2,13 +2,12 @@
 using System.Net.Sockets;
 using System.Net;
 using System.Diagnostics;
-using System.Reflection.PortableExecutable;
 
 namespace dotNetExpress;
 
 internal class Client
 {
-    public async Task Connection(Express express, TcpClient tcpClient)
+    public static async Task Connection(Express express, TcpClient tcpClient)
     {
         try
         {
@@ -17,7 +16,7 @@ internal class Client
             while (tcpClient.Connected)
             {
 
-                Debug.WriteLine($"waiting to make a Request object");
+                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] waiting to make a Request object");
 
                 if (!GetRequest(express, tcpClient, out Request req))
                     throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
@@ -25,7 +24,7 @@ internal class Client
                 if (req == null || req.Method == null)
                     throw new HttpProtocolException(500, "Error while parsing reuqest", new ProtocolViolationException("Unable to construct Request"));
 
-                Debug.WriteLine($"We have a Request object");
+                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] We have a Request object");
 
                 stream.ReadTimeout = express.KeepAliveTimeout * 1000; 
 
@@ -44,12 +43,12 @@ internal class Client
 
                 if (req.Res.Get("Upgrade") != null && req.Res.Get("Upgrade").Equals("WebSocket", StringComparison.OrdinalIgnoreCase))
                 {
-                    Debug.WriteLine($"websocket upgrade");
+                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] websocket upgrade");
                     break; // websocket
                 }
                 else if (req.Res.Get("Content-Type") != null && req.Res.Get("Content-Type").Equals("text/event-stream", StringComparison.OrdinalIgnoreCase))
                 {
-                    Debug.WriteLine($"text/event-stream");
+                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] text/event-stream");
                     break; // Server-Sent Events
                 }
                 else if (req.Res.Get("Connection") != null && req.Res.Get("Connection").Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
@@ -57,13 +56,13 @@ internal class Client
                     // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
                     // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater
                     // flexibility than a TcpClient offers, consider using AcceptSocket.
-                    Debug.WriteLine($"Lets keep the connection open");
+                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Lets keep the connection open");
                     continue;
                 }
                 else
                 {
                     // Do not keep the connection alive, leave the while loop
-                    Debug.WriteLine($"Connection does not need to be kept open");
+                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Connection does not need to be kept open");
                     tcpClient.Close();
                     break;
                 }
@@ -71,7 +70,7 @@ internal class Client
         }
         catch (Exception e)
         {
-            Debug.WriteLine($"Exception {e.Message}");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Exception {e.Message}");
             tcpClient.Close();
         }
     }
@@ -146,9 +145,10 @@ internal class Client
             }
         }
 
-        Debug.WriteLine($"Headers:");
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] {req.Protocol} {req.HttpVersion} {req.Path}");
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Headers:");
         foreach (string header in req.Headers)
-            Debug.WriteLine($"{header} {req.Headers[header]}");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] {header} {req.Headers[header]}");
 
         req.Host = req.Headers["host"];
         req.Hostname = req.Headers["host"]?.Split(':')[0];

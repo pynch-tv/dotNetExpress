@@ -13,6 +13,8 @@ public class Server : TcpListener
 
     private CancellationTokenSource _cancellation = new();
 
+    private int connectionCount = 0;
+
     #region Constructor
 
     /// <summary>
@@ -56,8 +58,12 @@ public class Server : TcpListener
     /// <param name="tcpClient"></param>
     private void RaiseHandleConnection(TcpClient tcpClient)
     {
+        Debug.WriteLine($"[T{Environment.CurrentManagedThreadId}] ({++connectionCount}) RaiseHandleConnection from {tcpClient.Client.RemoteEndPoint}");
+
         var handler = HandleConnection;
         handler?.Invoke(this, tcpClient);
+
+        Debug.WriteLine($"[T{Environment.CurrentManagedThreadId}] ({--connectionCount}) Connection done {tcpClient.Client?.RemoteEndPoint} {tcpClient.Client?.IsBound}");
     }
 
     #endregion
@@ -72,7 +78,7 @@ public class Server : TcpListener
 
         _tcpListenerThread = new Thread(() =>
         {
-            Debug.WriteLine("Listener started");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Listener started");
 
             List<Task> tcpClientTasks = [];
             int awaiterTimeoutInMS = 500;
@@ -96,58 +102,39 @@ public class Server : TcpListener
                         {
                             try
                             {
-                                Debug.WriteLine($"Awaiting new connection");
+                                Debug.WriteLine($"[T{Task.CurrentId}] Awaiting new connection");
 
-                                ProcessMessagesFromClient(await AcceptTcpClientAsync(_cancellation.Token));
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                keepGoing = false;
+                                RaiseHandleConnection(await AcceptTcpClientAsync(_cancellation.Token));
                             }
                             catch (Exception e)
                             {
-                                Debug.WriteLine($"Error in Client.Connection: {e.Message}");
+                                Debug.WriteLine($"[T{Task.CurrentId}] Error in Client.Connection: {e.Message}");
                                 keepGoing = false;
                             }
                         });
+                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] added task [T{awaiterTask.Id}]");
                         tcpClientTasks.Add(awaiterTask);
                     }
 
-                    var RemoveAtIndex = Task.WaitAny([.. tcpClientTasks], awaiterTimeoutInMS);
-                    if (RemoveAtIndex > 0)
+                    var removeAtIndex = Task.WaitAny([.. tcpClientTasks], awaiterTimeoutInMS);
+                    if (removeAtIndex > 0)
                     {
-                        Debug.WriteLine($"removing connection {RemoveAtIndex}");
-                        tcpClientTasks.RemoveAt(RemoveAtIndex);
+                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] removing connection at index {removeAtIndex} with Task Id: [T{tcpClientTasks[removeAtIndex].Id}]");
+                        tcpClientTasks.RemoveAt(removeAtIndex);
                     }
                 }
             }
             catch (Exception e) 
             {
-                Debug.WriteLine($"Inner loop exception: {e.Message}");
+                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Inner loop exception: {e.Message}");
             }
 
-            Debug.WriteLine("Listener stopped");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Listener stopped");
         });
 
         _tcpListenerThread.Start();
-        Debug.WriteLine("Listener starting");
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Listener starting");
     }
-    static int counter = 0;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="tcpClient"></param>
-    protected virtual void ProcessMessagesFromClient(TcpClient tcpClient)
-    {
-        if (tcpClient.Client.Available == 0)
-            return;
-        if (!tcpClient.Connected)
-            return;
-
-        RaiseHandleConnection(tcpClient);
-    }
-
 
     /// <summary>
     /// 

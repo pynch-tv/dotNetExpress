@@ -414,10 +414,10 @@ public class Express : IDisposable
         Listener.HandleConnection += async (sender, tcpClient) =>
         {
             Client client = new();
-            await client.Connection(this, tcpClient);
+            await Client.Connection(this, tcpClient);
 
             var connected = tcpClient.Connected ? "left open" : "closed";
-            Debug.WriteLine($"Connection handled, socket is {connected}");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Connection handled, socket is {connected}");
         };
 
         await Listener.Begin(this);
