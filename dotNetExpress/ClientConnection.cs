@@ -148,7 +148,7 @@ internal class Client
         Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] {req.Protocol} {req.HttpVersion} {req.Path}");
         Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] Headers:");
         foreach (string header in req.Headers)
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] {header} {req.Headers[header]}");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] \t{header}: {req.Headers[header]}");
 
         req.Host = req.Headers["host"];
         req.Hostname = req.Headers["host"]?.Split(':')[0];

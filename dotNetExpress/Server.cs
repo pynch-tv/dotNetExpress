@@ -13,6 +13,8 @@ public class Server : TcpListener
 
     private CancellationTokenSource _cancellation = new();
 
+    private object _lock = new();
+
     private int connectionCount = 0;
 
     #region Constructor
@@ -58,12 +60,22 @@ public class Server : TcpListener
     /// <param name="tcpClient"></param>
     private void RaiseHandleConnection(TcpClient tcpClient)
     {
-        Debug.WriteLine($"[T{Environment.CurrentManagedThreadId}] ({++connectionCount}) RaiseHandleConnection from {tcpClient.Client.RemoteEndPoint}");
+        lock (_lock)
+        {
+            connectionCount++;
+        }
+
+        Debug.WriteLine($"[T{Environment.CurrentManagedThreadId}] (Total open: {connectionCount}) RaiseHandleConnection from {tcpClient.Client.RemoteEndPoint}");
 
         var handler = HandleConnection;
         handler?.Invoke(this, tcpClient);
 
-        Debug.WriteLine($"[T{Environment.CurrentManagedThreadId}] ({--connectionCount}) Connection done {tcpClient.Client?.RemoteEndPoint} {tcpClient.Client?.IsBound}");
+        lock (_lock)
+        {
+            connectionCount--;
+        }
+
+        Debug.WriteLine($"[T{Environment.CurrentManagedThreadId}] (Still open: {connectionCount}) Connection done {tcpClient.Client?.RemoteEndPoint} {tcpClient.Client?.IsBound}");
     }
 
     #endregion
