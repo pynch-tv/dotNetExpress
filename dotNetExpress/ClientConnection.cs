@@ -18,7 +18,7 @@ internal class Client
 
             while (tcpClient.Connected)
             {
-                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
+                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
 
                 if (!GetRequest(express, tcpClient, out Request req))
                     throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));

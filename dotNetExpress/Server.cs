@@ -75,7 +75,7 @@ public class Server : TcpListener
             Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Listener started");
 
             List<Task> tcpClientTasks = [];
-            int awaiterTimeoutInMS = 50;
+            int awaiterTimeoutInMS = 500;
 
             _cancellation.Token.Register(() => this.Stop());
 
@@ -103,25 +103,15 @@ public class Server : TcpListener
                                 Debug.WriteLine($"[T{Task.CurrentId}] ({DateTime.Now:HH.mm.ss:ffff}) Error in Client.Connection: {e.Message}");
                             }
                         });
-                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) added task [T{awaiterTask.Id}]");
                         tcpClientTasks.Add(awaiterTask);
                     }
 
                     // Waits for any of the provided Task objects to complete execution.
-                   // while (true)
-                    {
-                        var i = Task.WaitAny([.. tcpClientTasks], awaiterTimeoutInMS);
-                        if (i >= 0)
-                        {
-
-                            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) removing connection at index {i} with Task Id: [T{tcpClientTasks[i].Id}]");
-                            tcpClientTasks.RemoveAt(i);
-                        }
-                    }
-
-                    foreach (var task in tcpClientTasks)
-                        if (task.Status == TaskStatus.RanToCompletion)
-                            Debug.Assert(1==0, "************************************* some tasks ran to completion, but where not removed");
+                    // Note: only the first complete Task is returned. If more Task ran to completion, it will be picked up
+                    //       time in this routine
+                    var indexOfFirstCompletedTask = Task.WaitAny([.. tcpClientTasks], awaiterTimeoutInMS);
+                    if (indexOfFirstCompletedTask >= 0)
+                        tcpClientTasks.RemoveAt(indexOfFirstCompletedTask);
                 }
             }
             catch (OperationCanceledException) { throw; }
