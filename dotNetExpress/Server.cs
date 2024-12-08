@@ -133,6 +133,8 @@ public class Server : TcpListener
     /// </summary>
     public void End()
     {
+        // Note: calling Cancel here will Stop this listener.
+        //       see the Token.Register function where this.Stop() is called.
         _cancellation.Cancel();
 
         Debug.WriteLine("Listener stopping");
