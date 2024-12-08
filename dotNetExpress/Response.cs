@@ -2,7 +2,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using dotNetExpress.Lookup;
 using dotNetExpress.Options;
@@ -161,33 +160,6 @@ public class Response : ServerResponse
         return _headers[field];
     }
 
-    #region Json Serialization helpers
-    class IPAddressConverter : JsonConverter<IPAddress>
-    {
-        public override IPAddress Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            return IPAddress.TryParse(reader.GetString(), out var ip) ? ip : null;
-        }
-        public override void Write(Utf8JsonWriter writer, IPAddress value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(value.ToString());
-        }
-    }
-
-    class TimeSpanConverter : JsonConverter<System.TimeSpan>
-    {
-        public override System.TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            return System.TimeSpan.TryParse(reader.GetString(), out var ts) ? ts : System.TimeSpan.Zero;
-        }
-        public override void Write(Utf8JsonWriter writer, System.TimeSpan value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(value.ToString());
-        }
-    }
-
-    #endregion
-
     /// <summary>
     /// Sends a JSON response. This method sends a response (with the correct content-type)
     /// that is the parameter converted to a JSON string.
@@ -196,14 +168,9 @@ public class Response : ServerResponse
     /// or null, and you can also use it to convert other values to JSON.
     /// </summary>
     /// <param name="body"></param>
-    public async Task Json(dynamic body)
+    /// <param name="options"></param> // dotNetExpress specific
+    public async Task Json(dynamic body, JsonSerializerOptions? options = null)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new IPAddressConverter(), new TimeSpanConverter() }
-        };
-
         var jsonString = JsonSerializer.Serialize(body, options);
 
         Type("application/json");
@@ -318,7 +285,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="body"></param>
     /// <returns></returns>
-    public async Task Send(string body = null)
+    public async Task Send(string? body = null)
     {
         if (body == null) return;
 
