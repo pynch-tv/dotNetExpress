@@ -120,9 +120,9 @@ internal class Client
                         foreach (var query in queries)
                         {
                             var queryParts = query.Split('=', StringSplitOptions.RemoveEmptyEntries);
-                            if (queryParts.Length != 2) throw new UriFormatException($"Query part is malformed: {query}");
+                            if (queryParts.Length < 2) throw new Exception($"Query part is malformed: {query}");
 
-                            req.Query.Add(queryParts[0], Uri.UnescapeDataString(queryParts[1]));
+                            req.Query.Add(queryParts[0], Uri.UnescapeDataString(string.Join('=', queryParts, 1, queryParts.Length - 1)));
                         }
 
                         req.Path = requestLineParts[1][..idx];
