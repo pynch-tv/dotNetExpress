@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace dotNetExpress.Options;
+namespace dotNetExpress.Node;
 
 public class ServerResponse
 {
