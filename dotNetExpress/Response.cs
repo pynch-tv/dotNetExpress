@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using dotNetExpress.Lookup;
+using dotNetExpress.Node;
 using dotNetExpress.Options;
 
 namespace dotNetExpress;
