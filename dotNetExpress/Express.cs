@@ -513,7 +513,7 @@ public class Express : IDisposable
     /// </summary>
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
-    public string Render(string view, dynamic locals)
+    public string Render(string view, dynamic? locals = null)
     {
         var viewEngineName = Get("view engine");
         if (null == viewEngineName)

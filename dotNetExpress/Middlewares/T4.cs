@@ -16,7 +16,7 @@ public class TemplateEngine
     /// <returns></returns>
     /// <exception cref="FileNotFoundException"></exception>
     /// <exception cref="ExpressException"></exception>
-    public static string T4(string view, dynamic locals)
+    public static string T4(string view, dynamic? locals = null)
     {
         var __dirname = Directory.GetCurrentDirectory();
 

@@ -269,7 +269,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="view"></param>
     /// <param name="locals"></param>
-    public async Task Render(string view, dynamic locals)
+    public async Task Render(string view, dynamic? locals = null)
     {
         var html = App.Render(view, locals);
         await Status(HttpStatusCode.OK).Send(html);
