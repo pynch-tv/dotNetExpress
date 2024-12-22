@@ -358,7 +358,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="filename"></param>
     /// <param name="options"></param>
-    public async Task SendFile(string filename, SendFileOptions options = null) // TODO callback
+    public async Task SendFile(string filename, SendFileOptions? options = null) // TODO callback
     {
         options ??= new SendFileOptions();
 
@@ -384,9 +384,6 @@ public class Response : ServerResponse
 
         var fileStream = File.OpenRead(path);
         await Send(fileStream);
-
-        //fileStream.CopyTo(this._stream);
-        //fileStream.Close();
     }
 
     /// <summary>
