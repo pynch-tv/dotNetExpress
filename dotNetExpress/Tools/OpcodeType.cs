@@ -13,7 +13,7 @@ public partial class WebSocket
         /* Denotes a binary code */
         Binary = 2,
 
-        /* Denotes a closed audioVideoServer */
+        /* Denotes a closed mediaServer */
         ClosedConnection = 8
     }
 }
