@@ -5,7 +5,7 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dotNetExpress", "dotNetExpress\dotNetExpress.csproj", "{E8F01F50-9F07-4E4B-88B2-BF16E35FBB09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpExamples", "dotnetExpress.Examples\CSharpExamples.csproj", "{79240B8D-228B-46DA-B49C-DBB7348B9E54}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpExamples", "dotNetExpress.Examples\CSharpExamples.csproj", "{79240B8D-228B-46DA-B49C-DBB7348B9E54}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
