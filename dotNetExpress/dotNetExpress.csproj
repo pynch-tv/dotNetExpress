@@ -11,7 +11,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>express csharp dotnet http-server</PackageTags>
     <Description>Fast, unopinionated, minimalist web framework for dotnet</Description>
-    <Copyright>Pynch 2024</Copyright>
+    <Copyright>Pynch 2025</Copyright>
     <Title>dotnetExpress</Title>
     <AssemblyVersion>1.0.9103.17379</AssemblyVersion>
     <FileVersion>1.0.9103.17379</FileVersion>
