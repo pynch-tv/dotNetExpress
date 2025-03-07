@@ -6,7 +6,7 @@
 
 ## Key features
 - behaves like node.js Express
-- fully written in .NET 8.0 C#
+- fully written in .NET 9.0 C#
 - fast
 - use WebSockets and SSE over the same port
 
