@@ -1,13 +1,23 @@
 ﻿using System.Diagnostics;
+using System.Net;
 
 namespace dotNetExpress.Tools;
+
+public class WsValue
+{
+    public required string Topic;
+    public required WebSocket Socket;
+}
+
 public class WsServer
 {
-    private readonly Dictionary<int, WebSocket> _webSockets = [];
+    private readonly Dictionary<EndPoint, WsValue> _webSockets = [];
 
     private CancellationTokenSource _cancellationTokenSource = new();
 
-    private Task _idleTask;
+    private Task? _idleTask;
+
+    private static readonly SemaphoreSlim semaphoreSlim = new(1, 1);
 
     /// <summary>
     /// Idle timeout value in seconds
@@ -33,6 +43,8 @@ public class WsServer
     /// <returns></returns>
     public bool Start()
     {
+        Debug.Assert(_idleTask == null, "_idleTask must be null here");
+
         _idleTask = Task.Run(() => IdleWorker(_cancellationTokenSource.Token));
 
         return true;
@@ -47,7 +59,8 @@ public class WsServer
 
         try
         {
-            _idleTask.Wait();
+            _idleTask?.Wait();
+            _idleTask = null;
         }
         catch (AggregateException e)
         {
@@ -62,19 +75,20 @@ public class WsServer
     /// 
     /// </summary>
     /// <param name="token"></param>
-    private void IdleWorker(CancellationToken token)
+    private async void IdleWorker(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            lock (_webSockets)
+            await semaphoreSlim.WaitAsync(token);
+            try
             {
-                var toRemove = new List<WebSocket>();
+                var toRemove = new List<WsValue>();
 
                 var frameMessage = WsFrameFactory.FromString(IdleMessage);
 
                 foreach (var kvp in _webSockets)
                 {
-                    var wsSocket = kvp.Value;
+                    var wsSocket = kvp.Value.Socket;
                     if (DateTime.Now.Subtract(wsSocket.LastAction).TotalSeconds > IdleTimeout)
                     {
                         try
@@ -87,16 +101,20 @@ public class WsServer
                         catch (Exception e)
                         {
                             Debug.WriteLine($"Socket exception {e.Message}");
-                            toRemove.Add(wsSocket);
+                            toRemove.Add(kvp.Value);
                         }
                     }
                 }
 
                 foreach (var client in toRemove)
-                    Remove(client);
+                    Remove(client.Socket);
 
                 if (toRemove.Count > 0)
                     Debug.WriteLine($"Sockets remaining {_webSockets.Count}.");
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
 
             Thread.Sleep(1000);
@@ -108,14 +126,21 @@ public class WsServer
     /// </summary>
     /// <param name="req"></param>
     /// <param name="res"></param>
-    public void Add(Request req, Response res)
+    public async void Add(Request req, Response res, string topic)
     {
-        lock (_webSockets)
+        var wsValue = new WsValue
         {
-            
+            Topic = topic,
+            Socket = new WebSocket(this, res.Socket)
+        };
 
-            var ws = new WebSocket(this, res.Socket);
-            _webSockets.Add(req.GetHashCode(), ws);
+        await semaphoreSlim.WaitAsync();
+        try {
+            _webSockets.Add(req.Socket.RemoteEndPoint, wsValue);
+        }
+        finally
+        {
+            semaphoreSlim.Release();
         }
     }
 
@@ -123,32 +148,39 @@ public class WsServer
     /// Socket in argument has already been closed
     /// </summary>
     /// <param name="client"></param>
-    public void Remove(WebSocket value)
+    public async void Remove(WebSocket value)
     {
-        lock (_webSockets)
-        {
-            foreach (var item in _webSockets.Where(kvp => kvp.Value == value).ToList())
+        await semaphoreSlim.WaitAsync();
+        try {
+            foreach (var item in _webSockets.Where(kvp => kvp.Value.Socket == value).ToList())
+            {
+                item.Value.Socket.GetSocket().Close();
                 _webSockets.Remove(item.Key);
+            }
+        }
+        finally
+        {
+            semaphoreSlim.Release();
         }
     }
+
+    public delegate string FilterByTopic(string key);
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="text"></param>
-    public async Task SendText(string text)
+    public async Task SendText(FilterByTopic filter)
     {
-        if (string.IsNullOrEmpty(text)) return;
-
-        var frameMessage = WsFrameFactory.FromString(text);
-
-        lock (_webSockets)
+        // lock (_webSockets)
+        await semaphoreSlim.WaitAsync();
+        try
         {
             // reverse iterate, so that we can remove
             // items from array in case of error
             // without screwing up the array
 
-            var toRemove = new List<WebSocket>();
+            var toRemove = new List<WsValue>();
 
             foreach (var kvp in _webSockets)
             {
@@ -156,9 +188,16 @@ public class WsServer
 
                 try
                 {
-                    client.GetSocket().Send(frameMessage);
+                    var text = filter(kvp.Value.Topic);
+                    if (string.IsNullOrEmpty(text))
+                        continue;
 
-                    client.LastAction = DateTime.Now;
+                    var frameMessage = WsFrameFactory.FromString(text);
+
+                    //      client.GetSocket().Send(frameMessage);
+                    await client.Socket.GetSocket().SendAsync(frameMessage);
+
+                    client.Socket.LastAction = DateTime.Now;
 
                 }
                 catch (Exception)
@@ -168,7 +207,11 @@ public class WsServer
             }
 
             foreach (var client in toRemove)
-                Remove(client);
+                Remove(client.Socket);
         }
+        finally
+        {
+            semaphoreSlim.Release();
+        }       
     }
 }

@@ -1,8 +1,14 @@
 ﻿using System.Diagnostics;
-using System.Net.Sockets;
+using System.Net;
 using System.Text;
 
 namespace dotNetExpress.Tools;
+
+public class SseValue
+{
+    public required string Topic;
+    public required SseSocket Socket;
+}
 
 /// <summary>
 /// Warning: When not used over HTTP/2, SSE suffers from a limitation to the maximum number of open connections, 
@@ -29,11 +35,13 @@ namespace dotNetExpress.Tools;
 
 public class SseServer
 {
-    private static readonly Dictionary<int, SseSocket> _sseSockets = [];
+    private readonly Dictionary<EndPoint, SseValue> _sseSockets = [];
 
     private CancellationTokenSource _cancellationTokenSource = new();
 
-    private Task _idleTask;
+    private Task? _idleTask;
+
+    private static readonly SemaphoreSlim semaphoreSlim = new(1, 1);
 
     /// <summary>
     /// Idle timeout value in seconds
@@ -57,6 +65,8 @@ public class SseServer
     /// <returns></returns>
     public bool Start()
     {
+        Debug.Assert(_idleTask == null, "_idleTask must be null here");
+
         _idleTask = Task.Run(() => IdleWorker(_cancellationTokenSource.Token));
 
         return true;
@@ -71,7 +81,8 @@ public class SseServer
 
         try
         {
-            _idleTask.Wait();
+            _idleTask?.Wait();
+            _idleTask = null;
         }
         catch (AggregateException e)
         {
@@ -85,12 +96,58 @@ public class SseServer
     /// <summary>
     /// 
     /// </summary>
+    /// <param name="topic"></param>
+    /// <param name="socket"></param>
+    public async void Add(Request req, Response res, string topic)
+    {
+        var sseValue = new SseValue
+        {
+            Topic = topic,
+            Socket = new SseSocket(this, req.Socket)
+        };
+
+        await semaphoreSlim.WaitAsync();
+        try {
+            _sseSockets.Add(req.Socket.RemoteEndPoint, sseValue);
+
+            Debug.WriteLine($"SseServer.Add: {topic}");
+        }
+        finally
+        {
+            semaphoreSlim.Release();
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="value"></param>
+    public async void Remove(SseSocket value)
+    {
+        await semaphoreSlim.WaitAsync();
+        try {
+            foreach (var item in _sseSockets.Where(kvp => kvp.Value.Socket == value).ToList())
+            {
+                Debug.WriteLine($"SSE Server.Remove: {item.Key}");
+                _sseSockets.Remove(item.Key);
+            }
+        }
+        finally
+        {
+            semaphoreSlim.Release();
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     /// <param name="token"></param>
-    private void IdleWorker(CancellationToken token)
+    private async void IdleWorker(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            lock (_sseSockets)
+            await semaphoreSlim.WaitAsync(token);
+            try
             {
                 var toRemove = new List<SseSocket>();
 
@@ -100,7 +157,7 @@ public class SseServer
 
                 foreach (var kvp in _sseSockets)
                 {
-                    var sseSocket = kvp.Value;
+                    var sseSocket = kvp.Value.Socket;
 
                     if (!sseSocket.GetSocket().Connected)
                         toRemove.Add(sseSocket);
@@ -110,7 +167,7 @@ public class SseServer
                         {
                             try
                             {
-                                sseSocket.GetSocket().SendAsync(frameMessage);
+                                await sseSocket.GetSocket().SendAsync(frameMessage);
 
                                 sseSocket.LastAction = DateTime.Now;
                             }
@@ -126,67 +183,42 @@ public class SseServer
                 foreach (var client in toRemove)
                     Remove(client);
             }
+            finally
+            {
+                semaphoreSlim.Release();
+            }
 
             Thread.Sleep(1000);
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="id"></param>
-    /// <param name="socket"></param>
-    public void Add(int id, Socket socket)
-    {
-        var sse = new SseSocket(this, socket);
-
-        lock (_sseSockets)
-        {
-            _sseSockets.Add(id, sse);
-
-            Debug.WriteLine($"SseServer.Add: {id}");
-        }
-
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="value"></param>
-    public void Remove(SseSocket value)
-    {
-        lock (_sseSockets)
-        {
-            foreach (var item in _sseSockets.Where(kvp => kvp.Value == value).ToList())
-            {
-                Debug.WriteLine($"SSE Server.Remove: {item.Key}");
-                _sseSockets.Remove(item.Key);
-            }
-        }
-    }
+    public delegate string FilterByTopic(string key);
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="text"></param>
-    public async Task SendText(string text)
+    public async Task SendText(FilterByTopic filter)
     {
-        if (string.IsNullOrEmpty(text)) return;
-
-        lock (_sseSockets)
+        await semaphoreSlim.WaitAsync();
+        try
         {
             var toRemove = new List<SseSocket>();
 
-            var message = $"data:{text}\n\n";
-
             foreach (var kvp in _sseSockets)
             {
-                var client = kvp.Value;
+                var client = kvp.Value.Socket;
 
                 try
                 {
+                    var text = filter(kvp.Value.Topic);
+                    if (string.IsNullOrEmpty(text))
+                        continue;
+
+                    var message = $"data:{text}\n\n";
+
                     var s = client.GetSocket();
-                    s.SendAsync(Encoding.UTF8.GetBytes(message));
+                    await s.SendAsync(Encoding.UTF8.GetBytes(message));
 
                     client.LastAction = DateTime.Now;
                 }
@@ -199,6 +231,10 @@ public class SseServer
 
             foreach (var client in toRemove)
                 Remove(client);
+        }
+        finally
+        {
+            semaphoreSlim.Release();
         }
     }
 }
