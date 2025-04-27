@@ -77,7 +77,7 @@ public class WsServer
     /// <param name="token"></param>
     private async void IdleWorker(CancellationToken token)
     {
-        while (!token.IsCancellationRequested)
+        while (true)
         {
             await semaphoreSlim.WaitAsync(token);
             try
@@ -117,7 +117,13 @@ public class WsServer
                 semaphoreSlim.Release();
             }
 
-            Thread.Sleep(1000);
+            var eventThatSignaledIndex = WaitHandle.WaitAny([token.WaitHandle], 1000);
+//            Debug.WriteLine($"ws IdleWorker: WaitHandle.WaitAny: {eventThatSignaledIndex}");
+            if (eventThatSignaledIndex == 0)
+            {
+                Debug.WriteLine("IdleWorker: CancellationToken signaled");
+                break;
+            }
         }
     }
 
