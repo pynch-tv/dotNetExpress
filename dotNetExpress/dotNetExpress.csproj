@@ -13,8 +13,8 @@
     <Description>Fast, unopinionated, minimalist web framework for dotnet</Description>
     <Copyright>Pynch 2025</Copyright>
     <Title>dotnetExpress</Title>
-    <AssemblyVersion>1.0.9350.9249</AssemblyVersion>
-    <FileVersion>1.0.9350.9249</FileVersion>
+    <AssemblyVersion>1.0.9353.9249</AssemblyVersion>
+    <FileVersion>1.0.9353.9249</FileVersion>
     <Version>$(FileVersion)</Version>
   </PropertyGroup>
 
