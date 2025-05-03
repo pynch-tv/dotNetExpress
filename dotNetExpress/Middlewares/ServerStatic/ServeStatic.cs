@@ -21,7 +21,7 @@ public class ServeStatic(string root, StaticOptions options)
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public async Task Serve(Request req, Response res, NextCallback next = null)
+    public async Task Serve(Request req, Response res, NextCallback? next = null)
     {
         var resource = Path.Combine(_root, req.Path?.TrimStart('/'));
         if (File.Exists(resource))

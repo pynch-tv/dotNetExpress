@@ -152,9 +152,6 @@ public class Express : IDisposable
 
         // The default engine extension to use when omitted.
         Set("view engine", "");
-
-        // Enables the "X-Powered-By: dotNetExpress" HTTP header.	
-        Set("x-powered-by", "true");
     }
 
     /// <summary>

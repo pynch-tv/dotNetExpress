@@ -171,6 +171,10 @@ internal class Client
             req.Res.Set("Connection", "keep-alive");
             req.Res.Set("Keep-Alive", $"timeout={app.KeepAliveTimeout}"); // Keep-Alive is in *seconds*
         }
+        else
+        {
+            // HTTP/2.0 TODO
+        }
 
         req.Socket = tcpClient.Client;
         req.Res.Socket = tcpClient.Client;

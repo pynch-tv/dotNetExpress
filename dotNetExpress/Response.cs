@@ -13,8 +13,6 @@ public class Response : ServerResponse
 {
     public HttpMethod HttpMethod;
 
-    private readonly NameValueCollection _locals = [];
-
     /// <summary>
     /// 
     /// </summary>
@@ -451,6 +449,11 @@ public class Response : ServerResponse
             _headers[field] = value;
     }
 
+    public void Set(NameValueCollection collection)
+    {
+        _headers.Add(collection);
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -511,9 +514,6 @@ public class Response : ServerResponse
     /// <returns></returns>
     public override async Task WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
     {
-        if (App.Get("x-powered-by")!.Equals("true", StringComparison.OrdinalIgnoreCase))
-            SetHeader("X-Powered-By", "dotNetExpress");
-
         if (statusCode == HttpStatusCode.SwitchingProtocols || (Get("Content-Type") != null && Get("Content-Type").Equals("text/event-stream")))
         {
         }
