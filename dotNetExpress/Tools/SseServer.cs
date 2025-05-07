@@ -63,7 +63,7 @@ public class SseServer
     /// 
     /// </summary>
     /// <returns></returns>
-    public bool Start()
+    public async Task<bool> Start()
     {
         Debug.Assert(_idleTask == null, "_idleTask must be null here");
 
