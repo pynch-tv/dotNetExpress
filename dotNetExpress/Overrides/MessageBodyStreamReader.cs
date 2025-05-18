@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Sockets;
+using System.Text;
 
 namespace dotNetExpress.Overrides;
 
@@ -58,25 +59,34 @@ public class MessageBodyStreamReader(Stream inner, long bufferSize = 256 * 1024)
     public string ReadLine()
     {
         var buffer = new byte[bufferSize];
-        var i = 0;
+        int i = 0;
+
         for (; i < buffer.Length; i++)
         {
-            var b = inner.ReadByte();
+            int b = inner.ReadByte(); // Has a timeout and will raise SocketException if the connection idles
             if (b == -1)
-                throw new IOException("inner.ReadByte returns -1");
+            {
+                if (i == 0)
+                    throw new IOException("inner.ReadByte returns -1 before reading any data");
+                break;
+            }
 
             buffer[i] = (byte)b;
-            if (buffer[i] == '\n')
+            if (b == '\n')
                 break;
         }
 
-        if (i == buffer.Length) return string.Empty;
-        if (i == 0) return string.Empty;
+        if (i == 0)
+            return string.Empty;
 
-        if (buffer[i - 1] == '\r')
-            i--;
+        int length = i;
+        if (buffer[length - 1] == '\n')
+            length--;
 
-        return Encoding.UTF8.GetString(buffer, 0, i);
+        if (length > 0 && buffer[length - 1] == '\r')
+            length--;
+
+        return Encoding.UTF8.GetString(buffer, 0, length);
     }
 
     /// <summary>

@@ -94,7 +94,7 @@ public class Server : TcpListener
                         {
                             try
                             {
-                                Debug.WriteLine($"[T{Task.CurrentId}] ({DateTime.Now:HH.mm.ss:ffff}) Awaiting new connection");
+//                                Debug.WriteLine($"[T{Task.CurrentId}] ({DateTime.Now:HH.mm.ss:ffff}) Awaiting new connection");
 
                                 RaiseHandleConnection(await AcceptTcpClientAsync(_cancellation.Token));
                             }

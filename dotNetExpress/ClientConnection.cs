@@ -18,7 +18,7 @@ internal class Client
 
             while (tcpClient.Connected)
             {
-                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
+//                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
 
                 if (!GetRequest(express, tcpClient, out Request req))
                     throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
@@ -26,7 +26,7 @@ internal class Client
                 if (req == null || req.Method == null)
                     throw new HttpProtocolException(500, "Error while parsing reuqest", new ProtocolViolationException("Unable to construct Request"));
 
-                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) We have a Request object");
+//                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) We have a Request object");
 
                 stream.ReadTimeout = express.KeepAliveTimeout * 1000; 
 
@@ -58,13 +58,13 @@ internal class Client
                     // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
                     // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater
                     // flexibility than a TcpClient offers, consider using AcceptSocket.
-                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Lets keep the connection open");
+//                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Lets keep the connection open");
                     continue;
                 }
                 else
                 {
                     // Do not keep the connection alive, leave the while loop
-                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Connection does not need to be kept open");
+//                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Connection does not need to be kept open");
                     tcpClient.Close();
                     break;
                 }
@@ -72,7 +72,7 @@ internal class Client
         }
         catch (Exception e)
         {
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Exception {e.Message}");
+//            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Exception {e.Message}");
             tcpClient.Close();
         }
     }
@@ -147,10 +147,10 @@ internal class Client
             }
         }
 
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) {req.Protocol} {req.HttpVersion} {req.Path}");
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Headers:");
-        foreach (string header in req.Headers)
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) \t{header}: {req.Headers[header]}");
+        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) {req.Protocol} {req.HttpVersion} {req.Path}");
+        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Headers:");
+        //foreach (string header in req.Headers)
+        //    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) \t{header}: {req.Headers[header]}");
 
         req.Host = req.Headers["host"];
         req.Hostname = req.Headers["host"]?.Split(':')[0];
