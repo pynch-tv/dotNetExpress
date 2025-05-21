@@ -104,8 +104,6 @@ internal class Client
                 if (string.IsNullOrEmpty(line))
                     break;
 
-                Debug.WriteLine($"----------------------Line: {line}");
-
                 if (lineNumber++ == 1)
                 {
                     var requestLineParts = line.Split(' ');
@@ -149,10 +147,10 @@ internal class Client
             }
         }
 
-        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) {req.Protocol} {req.HttpVersion} {req.Path}");
-        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Headers:");
-        //foreach (string header in req.Headers)
-        //    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) \t{header}: {req.Headers[header]}");
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) {req.Protocol} {req.HttpVersion} {req.Path}");
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Headers:");
+        foreach (string header in req.Headers)
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) \t{header}: {req.Headers[header]}");
 
         req.Host = req.Headers["host"];
         req.Hostname = req.Headers["host"]?.Split(':')[0];

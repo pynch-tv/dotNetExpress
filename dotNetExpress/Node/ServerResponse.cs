@@ -18,6 +18,8 @@ public class ServerResponse
 
     protected readonly NameValueCollection _headers = [];
 
+    private static readonly ReadOnlyMemory<byte> CrLf = new byte[] { 0x0D, 0x0A };
+
     /// <summary>
     /// Constructor
     /// </summary>
@@ -162,7 +164,37 @@ public class ServerResponse
         await _stream.WriteAsync(buffer, 0, length);
 
         if (_chunked)
-            await _stream.WriteAsync(new byte[] { 0xd, 0xa }, 0, 2);
+            await _stream.WriteAsync(CrLf);
+
+        await _stream.FlushAsync();
+
+        // Returns true if the entire data was flushed successfully to the kernel buffer.
+        // Returns false if all or part of the data was queued in user memory
+        return true;
+    }
+
+    protected async Task<bool> Write(ReadOnlyMemory<byte> buffer)
+    {
+        // The first time response.write() is called, it will send the buffered header
+        // information and the first chunk of the body to the client
+        if (!HeadersSent)
+        {
+            if (!HasHeader("Content-Length"))
+            {
+                _chunked = true;
+                SetHeader("Transfer-Encoding", "chunked");
+            }
+
+            await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+        }
+
+        if (_chunked)
+            await Write($"{buffer.Length:X}\r\n");
+
+        await _stream.WriteAsync(buffer);
+
+        if (_chunked)
+            await _stream.WriteAsync(CrLf);
 
         await _stream.FlushAsync();
 
@@ -206,7 +238,7 @@ public class ServerResponse
     /// <param name="statusCode"></param>
     /// <param name="statusMessage"></param>
     /// <param name="headers"></param>
-    public virtual async Task WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection headers = null)
+    public virtual async Task WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection? headers = null)
     {
         if (null != headers)
             foreach (string key in headers)
@@ -258,7 +290,7 @@ public class ServerResponse
     /// </summary>
     /// <param name="data"></param>
     /// <param name="encoding"></param>
-    public async Task End(string data, Encoding encoding = null)
+    public async Task End(string data, Encoding? encoding = null)
     {
         await Write(data, encoding ?? Encoding.UTF8);
         await End();

@@ -288,7 +288,7 @@ public class Response : ServerResponse
     {
         if (body == null) return;
 
-        var bytes = Encoding.Default.GetBytes(body);
+        ReadOnlyMemory<byte> bytes = Encoding.Default.GetBytes(body);
 
         if (!HasHeader("Content-Length"))
             Set("Content-Length", bytes.Length);
@@ -305,6 +305,7 @@ public class Response : ServerResponse
     public async Task Send(object body)
     {
         throw new NotSupportedException();
+
         await End();
     }
 
@@ -317,6 +318,7 @@ public class Response : ServerResponse
     public async Task Send(bool body)
     {
         throw new NotSupportedException();
+
         await End();
     }
 
@@ -327,7 +329,19 @@ public class Response : ServerResponse
     /// <returns></returns>
     public async Task Send(byte[] buffer)
     {
-        await Write(buffer, buffer.Length);
+        ReadOnlyMemory<byte> span = buffer;
+
+        await Send(span);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="span"></param>
+    /// <returns></returns>
+    public async Task Send(ReadOnlyMemory<byte> span)
+    {
+        await Write(span);
 
         await End();
     }
