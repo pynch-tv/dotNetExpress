@@ -1,4 +1,5 @@
-﻿using dotNetExpress;
+﻿using System.Diagnostics;
+using dotNetExpress;
 using dotNetExpress.Delegates;
 using dotNetExpress.Options;
 
@@ -9,7 +10,7 @@ namespace dotnetExpress.Middlewares.ServerStatic;
 /// </summary>
 /// <param name="root"></param>
 /// <param name="options"></param>
-public class ServeStatic(string root, StaticOptions options)
+public class ServeStatic(string root, StaticOptions? options)
 {
     private readonly string _root = root;
 
@@ -23,10 +24,14 @@ public class ServeStatic(string root, StaticOptions options)
     /// <param name="next"></param>
     public async Task Serve(Request req, Response res, NextCallback? next = null)
     {
-        var resource = Path.Combine(_root, req.Path?.TrimStart('/'));
+        var relativePath = req.Path?.TrimStart('/') ?? string.Empty;
+
+        Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
+
+        var resource = Path.Combine(_root, relativePath);
         if (File.Exists(resource))
         {
-            res.SendFile(resource);
+            await res.SendFile(resource);
             return; // do not evaluate next
         }
 

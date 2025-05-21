@@ -240,7 +240,7 @@ public class Express : IDisposable
     /// <param name="root"></param>
     /// <param name="options"></param>
     /// <returns></returns>
-    public static MiddlewareCallback Static(string root, StaticOptions options = null)
+    public static MiddlewareCallback Static(string root, StaticOptions? options = null)
     {
         var serveStatic = new ServeStatic(root, options);
 
@@ -354,10 +354,7 @@ public class Express : IDisposable
     /// app settings table. 
     /// </summary>
     /// <param name="key"></param>
-    public string Get(string key)
-    {
-        return _settings[key];
-    }
+    public string Get(string key) => _settings[key];
 
     /// <summary>
     /// Routes HTTP GET requests to the specified path with the specified callback functions.
@@ -378,7 +375,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="port"></param>
     /// <param name="callback"></param>
-    public async Task<Server> Listen(int port, ListenCallback callback = null)
+    public async Task<Server> Listen(int port, ListenCallback? callback = null)
     {
         return await Listen(port, string.Empty, 20, callback);
     }
@@ -397,7 +394,7 @@ public class Express : IDisposable
     /// <param name="host"></param>
     /// <param name="backLog"></param>
     /// <param name="callback"></param>
-    public async Task<Server> Listen(int port, string host = "", int backLog = 20, ListenCallback callback = null)
+    public async Task<Server> Listen(int port, string host = "", int backLog = 20, ListenCallback? callback = null)
     {
         IPAddress ipAddress = IPAddress.Any;
         if (!string.IsNullOrEmpty(host))

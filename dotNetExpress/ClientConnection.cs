@@ -104,6 +104,8 @@ internal class Client
                 if (string.IsNullOrEmpty(line))
                     break;
 
+                Debug.WriteLine($"----------------------Line: {line}");
+
                 if (lineNumber++ == 1)
                 {
                     var requestLineParts = line.Split(' ');
