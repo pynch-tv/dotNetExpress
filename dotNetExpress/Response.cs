@@ -288,7 +288,7 @@ public class Response : ServerResponse
     {
         if (body == null) return;
 
-        ReadOnlyMemory<byte> bytes = Encoding.Default.GetBytes(body);
+        ReadOnlyMemory<byte> bytes = Encoding.UTF8.GetBytes(body);
 
         if (!HasHeader("Content-Length"))
             Set("Content-Length", bytes.Length);
