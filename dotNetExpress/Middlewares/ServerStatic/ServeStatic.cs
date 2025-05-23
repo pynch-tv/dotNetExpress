@@ -26,11 +26,11 @@ public class ServeStatic(string root, StaticOptions? options)
     {
         var relativePath = req.Path?.TrimStart('/') ?? string.Empty;
 
-        Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
-
         var resource = Path.Combine(_root, relativePath);
         if (File.Exists(resource))
         {
+            Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
+
             await res.SendFile(resource);
             return; // do not evaluate next
         }
