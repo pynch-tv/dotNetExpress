@@ -46,7 +46,7 @@ public class ServerResponse
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
-    protected string GetHeader(string field)
+    protected string? GetHeader(string field)
     {
         return _headers[field];
     }
@@ -72,7 +72,7 @@ public class ServerResponse
     /// <param name="field"></param>
     /// <param name="value"></param>
     /// <returns></returns>
-    protected void SetHeader(string field, string value)
+    protected void SetHeader(string field, string? value)
     {
         _headers[field] = value;
     }
@@ -94,7 +94,7 @@ public class ServerResponse
     /// All header names are lowercase.
     /// </summary>
     /// <returns></returns>
-    protected string[] GetHeaderNames()
+    protected string?[] GetHeaderNames()
     {
         return _headers.AllKeys;
     }
@@ -115,7 +115,7 @@ public class ServerResponse
     /// </summary>
     /// <param name="buffer"></param>
     /// <param name="encoding"></param>
-    public async Task<bool> Write(string buffer, Encoding encoding = null)
+    public async Task<bool> Write(string buffer, Encoding? encoding = null)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
@@ -130,42 +130,6 @@ public class ServerResponse
         if (bodyLength <= 0) return true;
 
         await _stream.WriteAsync(body.AsMemory(0, bodyLength));
-        await _stream.FlushAsync();
-
-        // Returns true if the entire data was flushed successfully to the kernel buffer.
-        // Returns false if all or part of the data was queued in user memory
-        return true;
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="length"></param>
-    /// <returns></returns>
-    protected async Task<bool> Write(byte[] buffer, int length)
-    {
-        // The first time response.write() is called, it will send the buffered header
-        // information and the first chunk of the body to the client
-        if (!HeadersSent)
-        {
-            if (!HasHeader("Content-Length"))
-            {
-                _chunked = true;
-                SetHeader("Transfer-Encoding", "chunked");
-            }
-
-            await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
-        }
-
-        if (_chunked)
-            await Write($"{length:X}\r\n");
-
-        await _stream.WriteAsync(buffer, 0, length);
-
-        if (_chunked)
-            await _stream.WriteAsync(CrLf);
-
         await _stream.FlushAsync();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
@@ -220,16 +184,6 @@ public class ServerResponse
     public virtual async Task WriteHead(HttpStatusCode statusCode)
     {
         await WriteHead(statusCode, statusCode.ToString());
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="statusCode"></param>
-    /// <param name="headers"></param>
-    public virtual async Task WriteHead(HttpStatusCode statusCode, NameValueCollection headers = null)
-    {
-        await WriteHead(statusCode, statusCode.ToString(), headers);
     }
 
     /// <summary>
@@ -293,6 +247,7 @@ public class ServerResponse
     public async Task End(string data, Encoding? encoding = null)
     {
         await Write(data, encoding ?? Encoding.UTF8);
+
         await End();
     }
 
