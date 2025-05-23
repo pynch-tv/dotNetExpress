@@ -288,12 +288,12 @@ public class Response : ServerResponse
     {
         if (body == null) return;
 
-        ReadOnlyMemory<byte> bytes = Encoding.UTF8.GetBytes(body);
+        ReadOnlyMemory<byte> rom = Encoding.UTF8.GetBytes(body);
 
         if (!HasHeader("Content-Length"))
-            Set("Content-Length", bytes.Length);
+            Set("Content-Length", rom.Length);
 
-        await Send(bytes);
+        await Send(rom);
     }
 
     /// <summary>
@@ -353,6 +353,8 @@ public class Response : ServerResponse
     /// <returns></returns>
     public async Task Send(Stream stream)
     {
+        await WriteHead(_httpStatusCode);
+
         await stream.CopyToAsync(this._stream);
 
         await End();
@@ -526,7 +528,7 @@ public class Response : ServerResponse
     /// <param name="statusMessage"></param>
     /// <param name="headers"></param>
     /// <returns></returns>
-    public override async Task WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection headers = null)
+    public override async Task WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection? headers = null)
     {
         if (statusCode == HttpStatusCode.SwitchingProtocols || (Get("Content-Type") != null && Get("Content-Type").Equals("text/event-stream")))
         {
