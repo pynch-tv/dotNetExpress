@@ -4,7 +4,7 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        await Examples.HelloWorld();
+        await Examples.Download();
 
         Console.ReadLine();
     }
