@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using dotNetExpress;
 using dotNetExpress.Delegates;
 using dotNetExpress.Options;
@@ -10,11 +11,48 @@ namespace dotnetExpress.Middlewares.ServerStatic;
 /// </summary>
 /// <param name="root"></param>
 /// <param name="options"></param>
-public class ServeStatic(string root, StaticOptions? options)
+public class ServeStatic
 {
-    private readonly string _root = root;
+    private readonly string _root;
 
-    private readonly StaticOptions _options = options ?? new();
+    private readonly SendFileOptions? sendFileOptions;
+
+    private readonly StaticOptions? _options;
+
+    private bool _fallthrough;
+
+    private bool _redirect;
+
+    private string _setHeaders;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="root"></param>
+    /// <param name="options"></param>
+    public ServeStatic(string root, StaticOptions? options)
+    {
+        if (string.IsNullOrEmpty(root))
+            throw new ArgumentNullException(nameof(root), "Root directory cannot be null or empty.");
+
+        // copy options object
+        var opts = new StaticOptions(options ?? null);
+
+        // fall-though
+        _fallthrough = opts.Fallthrough;
+
+        // default redirect
+        _redirect = opts.Redirect;
+
+        // headers listener
+        _setHeaders = opts.SetHeaders;
+
+        _root = Path.Combine(root);
+
+        // construct directory listener ???
+
+    }
+
 
     /// <summary>
     /// 
@@ -24,14 +62,33 @@ public class ServeStatic(string root, StaticOptions? options)
     /// <param name="next"></param>
     public async Task Serve(Request req, Response res, NextCallback? next = null)
     {
+        if (req.Method != HttpMethod.Get && req.Method != HttpMethod.Head)
+        {
+            if (_fallthrough)
+            {
+                next?.Invoke();
+                return;
+            }
+
+            // method not allowed
+            res.Set("Allow", "GET, HEAD");
+            res.Set("Content-Length", "0");
+            await res.SendStatus(HttpStatusCode.MethodNotAllowed);
+            await res.End();
+
+            return;
+        }
+
         var relativePath = req.Path?.TrimStart('/') ?? string.Empty;
 
-        var resource = Path.Combine(_root, relativePath);
-        if (File.Exists(resource))
-        {
-            Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
+        var absolutePath = Path.Combine(_root, relativePath);
 
-            await res.SendFile(resource);
+        Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
+
+
+        if (File.Exists(absolutePath))
+        {
+            await res.SendFile(absolutePath);
             return; // do not evaluate next
         }
 

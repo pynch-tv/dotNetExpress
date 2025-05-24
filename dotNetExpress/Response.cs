@@ -381,11 +381,13 @@ public class Response : ServerResponse
             // TODO call error handler
         }
 
-        var path = Path.Combine(options.Root, filename);
-        if (!File.Exists(path))
-        {
-            // TODO call error handler
-        }
+        //var path = Path.Combine(options.Root, filename);
+        //if (!File.Exists(path))
+        //{
+        //    // TODO call error handler
+        //}
+
+        var path = filename;
 
         var file = new FileInfo(path);
 
@@ -393,8 +395,6 @@ public class Response : ServerResponse
         _headers.Add(options.Headers);
         if (options.LastModified)
             _headers.Add(new NameValueCollection() { { "Last-Modified", file.LastWriteTime.ToUniversalTime().ToString("r") } });
-
-        await WriteHead(_httpStatusCode);
 
         var fileStream = File.OpenRead(path);
         await Send(fileStream);

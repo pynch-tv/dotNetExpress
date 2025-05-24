@@ -51,4 +51,25 @@ public class StaticOptions
     /// Function for setting HTTP headers to serve with the file.
     /// </summary>
     public string SetHeaders;
+
+    public StaticOptions()
+    {
+
+    }
+
+    public StaticOptions(StaticOptions? another)
+    {
+        if (another == null) return;
+
+        this.Dotfiles = another.Dotfiles;
+        this.Etag = another.Etag;   
+        this.Extensions = another.Extensions;
+        this.Fallthrough = another.Fallthrough;
+        this.Immutable = another.Immutable;
+        this.Index = another.Index;
+        this.LastModified = another.LastModified;
+        this.MaxAge = another.MaxAge;
+        this.Redirect = another.Redirect;
+        this.SetHeaders = another.SetHeaders;
+    }
 }
