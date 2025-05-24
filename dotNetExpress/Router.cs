@@ -29,7 +29,7 @@ public class Router
     /// Constructor
     /// </summary>
     /// <param name="options"></param>
-    public Router(RouterOptions options = null)
+    public Router(RouterOptions? options = null)
     {
         options ??= new RouterOptions();
         _options = options;
@@ -192,7 +192,6 @@ public class Router
         await _catchAll(req, res);
 
         return true;
-
     }
 
     #region Methods
@@ -314,10 +313,10 @@ public class Router
     /// 
     /// </summary>
     /// <param name="path"></param>
-    /// <param name="middleware"></param>
-    public void Options(string path, params MiddlewareCallback[] middleware)
+    /// <param name="middlewares"></param>
+    public void Options(string path, params MiddlewareCallback[] middlewares)
     {
-        METHOD(HttpMethod.Options, path, middleware);
+        METHOD(HttpMethod.Options, path, middlewares);
     }
 
     /// <summary>
@@ -341,10 +340,10 @@ public class Router
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="callback"></param>
-    public void Use(MiddlewareCallback callback)
+    /// <param name="middleware"></param>
+    public void Use(MiddlewareCallback middleware)
     {
-        _middlewares.Add(callback);
+        _middlewares.Add(middleware);
     }
 
     /// <summary>
@@ -362,8 +361,9 @@ public class Router
     /// </summary>
     /// <param name="path"></param>
     /// <param name="middlewareCallback"></param>
-    public void Use(string path, MiddlewareCallback middlewareCallback)
+    public void Use(string path, MiddlewareCallback middleware)
     {
+        _middlewares.Add(middleware);
     }
 
     /// <summary>

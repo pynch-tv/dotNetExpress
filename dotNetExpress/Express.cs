@@ -252,7 +252,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    internal virtual Router Router(RouterOptions options = null) => new(options);
+    internal virtual Router Router(RouterOptions? options = null) => new(options);
 
     /// <summary>
     /// This is a built-in middleware function in Express. It parses incoming request payloads into a Buffer and is based on body-parser.
@@ -265,7 +265,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    public static MiddlewareCallback Raw(jsonOptions options = null)
+    public static MiddlewareCallback Raw(jsonOptions? options = null)
     {
         return BodyParser.ParseRaw;
     }
@@ -354,7 +354,7 @@ public class Express : IDisposable
     /// app settings table. 
     /// </summary>
     /// <param name="key"></param>
-    public string Get(string key) => _settings[key];
+    public string? Get(string key) => _settings[key];
 
     /// <summary>
     /// Routes HTTP GET requests to the specified path with the specified callback functions.
