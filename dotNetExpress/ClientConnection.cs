@@ -7,7 +7,9 @@ namespace dotNetExpress;
 
 internal class Client
 {
-    public static async Task Connection(Express express, TcpClient tcpClient)
+    private long _startTicks = DateTime.Now.Ticks;
+
+    public async Task Connection(Express express, TcpClient tcpClient)
     {
         try
         {
@@ -18,7 +20,7 @@ internal class Client
 
             while (tcpClient.Connected)
             {
-//                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
+                //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
 
                 if (!GetRequest(express, tcpClient, out Request req))
                     throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
@@ -26,7 +28,13 @@ internal class Client
                 if (req == null || req.Method == null)
                     throw new HttpProtocolException(500, "Error while parsing reuqest", new ProtocolViolationException("Unable to construct Request"));
 
-//                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) We have a Request object");
+                req.Res.WriteHeaders += (sender, e) =>
+                {
+                    var durationInMs = (DateTime.Now.Ticks - _startTicks) / TimeSpan.TicksPerMillisecond;
+                    req.Res.Set("X-Response-Time", durationInMs.ToString());
+                };
+
+                //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) We have a Request object");
 
                 stream.ReadTimeout = express.KeepAliveTimeout * 1000; 
 
@@ -77,6 +85,12 @@ internal class Client
         }
     }
 
+    private static void Res_WriteHeaders(object? sender, System.Collections.Specialized.NameValueCollection e)
+    {
+        throw new NotImplementedException();
+    }
+
+
     /// <summary>
     /// 
     /// </summary>
@@ -86,7 +100,7 @@ internal class Client
     /// <returns></returns>
     /// <exception cref="HttpProtocolException"></exception>
     /// <exception cref="UriFormatException"></exception>
-    private static bool GetRequest(Express app, TcpClient tcpClient, out Request req)
+    private bool GetRequest(Express app, TcpClient tcpClient, out Request req)
     {
         // create out variable
         req = new Request(app);
@@ -103,6 +117,12 @@ internal class Client
                 var line = streamReader.ReadLine();
                 if (string.IsNullOrEmpty(line))
                     break;
+
+                if (lineNumber == 1)
+                {
+                    Debug.WriteLine($"---------------------------- {_startTicks}");
+                    _startTicks = DateTime.Now.Ticks;
+                }
 
                 if (lineNumber++ == 1)
                 {

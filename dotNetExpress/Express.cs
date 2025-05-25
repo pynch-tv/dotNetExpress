@@ -408,7 +408,7 @@ public class Express : IDisposable
         Listener.HandleConnection += async (sender, tcpClient) =>
         {
             Client client = new();
-            await Client.Connection(this, tcpClient);
+            await client.Connection(this, tcpClient);
 
             var connected = tcpClient.Connected ? "left open" : "closed";
 //            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Connection handled, socket is {connected}");

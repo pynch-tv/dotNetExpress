@@ -20,6 +20,18 @@ public class ServerResponse
 
     private static readonly ReadOnlyMemory<byte> CrLf = new byte[] { 0x0D, 0x0A };
 
+    public event EventHandler<NameValueCollection> WriteHeaders;
+
+    protected virtual void RaiseWriteHeaders(NameValueCollection e)
+    {
+        WriteHeaders?.Invoke(this, e);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Socket? Socket = null;
+
     /// <summary>
     /// Constructor
     /// </summary>
@@ -34,12 +46,7 @@ public class ServerResponse
     /// <summary>
     /// 
     /// </summary>
-    public Socket Socket;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public Socket Connection { get { return Socket; } }
+    public Socket? Connection { get { return Socket; } }
 
     /// <summary>
     /// 
@@ -197,6 +204,8 @@ public class ServerResponse
         if (null != headers)
             foreach (string key in headers)
                 SetHeader(key, headers[key]);
+
+        RaiseWriteHeaders(_headers);
 
         if (string.IsNullOrEmpty(statusMessage))
             statusMessage = _httpStatusCode.ToString();

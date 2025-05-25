@@ -11,7 +11,7 @@ namespace dotNetExpress;
 
 public class Response : ServerResponse
 {
-    public HttpMethod HttpMethod;
+    public HttpMethod HttpMethod = HttpMethod.Head;
 
     /// <summary>
     /// 
@@ -78,7 +78,7 @@ public class Response : ServerResponse
     /// <param name="value"></param>
     /// <exception cref="NotImplementedException"></exception>
     /// <exception cref="NotImplementedException"></exception>Set
-    public void Cookie(string name, string value, CookieOptions options = null)
+    public void Cookie(string name, string value, CookieOptions? options = null)
     {
         throw new NotImplementedException();
     }
@@ -86,9 +86,9 @@ public class Response : ServerResponse
     /// <summary>
     /// Clears the cookie specified by name. For details about the options object, see res.cookie().
     /// </summary>
-    public void ClearCookie(string name, CookieOptions options = null)
+    public void ClearCookie(string name, CookieOptions? options = null)
     {
-        options ??= new CookieOptions();
+        _ = options ?? new CookieOptions();
 
         throw new NotImplementedException();
     }
@@ -105,7 +105,7 @@ public class Response : ServerResponse
     /// occurs, the callback function must explicitly handle the response process either
     /// by ending the request-response cycle, or by passing control to the next route.
     /// </summary>
-    public async Task Download(string path, string filename = null, DownloadOptions options = null) // todo: error callback
+    public async Task Download(string path, string? filename = null, DownloadOptions? options = null) // todo: error callback
     {
         options ??= new DownloadOptions();
         filename ??= Path.GetFileName(path);
@@ -154,7 +154,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
-    public string Get(string field)
+    public string? Get(string field)
     {
         return _headers[field];
     }
@@ -515,34 +515,6 @@ public class Response : ServerResponse
         Set("Vary",field);
 
         return this;
-    }
-
-    #endregion
-
-    #region Override methods
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="statusCode"></param>
-    /// <param name="statusMessage"></param>
-    /// <param name="headers"></param>
-    /// <returns></returns>
-    public override async Task WriteHead(HttpStatusCode statusCode, string statusMessage = "", NameValueCollection? headers = null)
-    {
-        if (statusCode == HttpStatusCode.SwitchingProtocols || (Get("Content-Type") != null && Get("Content-Type").Equals("text/event-stream")))
-        {
-        }
-        else
-        {
-            //if (App.KeepAlive)
-            //{
-            //}
-            //else
-            //    SetHeader("Connection", "Close");
-        }
-
-        await base.WriteHead(statusCode, statusMessage, headers);
     }
 
     #endregion
