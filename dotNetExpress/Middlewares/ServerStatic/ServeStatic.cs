@@ -52,7 +52,6 @@ public class ServeStatic
         // construct directory listener ???
     }
 
-
     /// <summary>
     /// 
     /// </summary>
@@ -78,9 +77,7 @@ public class ServeStatic
             return;
         }
 
-        var s1 = req.BaseUrl;
-        var s2 = req.OriginalUrl;
-        string path = s2.StartsWith(s1) ? s2.Substring(s1.Length) : s2;
+        string path = req.OriginalUrl.StartsWith(req.BaseUrl) ? req.OriginalUrl[req.BaseUrl.Length..] : req.OriginalUrl;
 
         // strip leading / from path
         var relativePath = path?.TrimStart('/') ?? string.Empty;
