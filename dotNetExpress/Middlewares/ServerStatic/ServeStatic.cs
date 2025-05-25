@@ -50,7 +50,6 @@ public class ServeStatic
         _root = Path.Combine(root);
 
         // construct directory listener ???
-
     }
 
 
@@ -66,7 +65,7 @@ public class ServeStatic
         {
             if (_fallthrough)
             {
-                next?.Invoke();
+                next?.Invoke(null);
                 return;
             }
 
@@ -79,19 +78,23 @@ public class ServeStatic
             return;
         }
 
-        var relativePath = req.Path?.TrimStart('/') ?? string.Empty;
+        var s1 = req.BaseUrl;
+        var s2 = req.OriginalUrl;
+        string path = s2.StartsWith(s1) ? s2.Substring(s1.Length) : s2;
 
+        // strip leading / from path
+        var relativePath = path?.TrimStart('/') ?? string.Empty;
+        // Concat with root directory
         var absolutePath = Path.Combine(_root, relativePath);
 
         Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
 
-
-        if (File.Exists(absolutePath))
+//        if (File.Exists(absolutePath))
         {
             await res.SendFile(absolutePath);
             return; // do not evaluate next
         }
 
-        next?.Invoke(null);
+//        next?.Invoke(null);
     }
 }

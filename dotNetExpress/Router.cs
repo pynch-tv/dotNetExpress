@@ -9,7 +9,7 @@ public class Router
 {
     public string MountPath = string.Empty;
 
-    private Router _parent;
+    private Router? _parent;
 
     private readonly List<ErrorCallback> _errorHandler = [];
 
@@ -19,7 +19,7 @@ public class Router
 
     private readonly Dictionary<string, Router> _routers = [];
 
-    private MiddlewareCallback _catchAll;
+    private MiddlewareCallback? _catchAll;
 
     private readonly RouterOptions _options;
 
@@ -93,6 +93,8 @@ public class Router
     /// <returns></returns>
     public async Task<bool> Dispatch(Request req, Response res)
     {
+        req.BaseUrl = MountPath;
+
         _gotoNext = true;
         foreach (var middleware in _middlewares)
         {
@@ -135,8 +137,6 @@ public class Router
 
         foreach (var route in _routes.Where(route => (route.Method == req.Method || route.Method == null)).Where(route => Match(route.Path, req)))
         {
-            req.BaseUrl = MountPath;
-
             foreach (var middleware in route.Middlewares)
             {
                 _gotoNext = false;
@@ -181,11 +181,17 @@ public class Router
 
         foreach (var router in _routers.Values)
         {
-            if (await router.Dispatch(req, res))
-                return true;
+            if (req.OriginalUrl.StartsWith(router.MountPath))
+            {
+                req.BaseUrl = router.MountPath;
 
-            await res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" }); 
+                if (await router.Dispatch(req, res))
+                    return true;
+            }
+
         }
+        await res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" });
+
 
         if (null == _catchAll) return false;
 
@@ -363,7 +369,7 @@ public class Router
     /// <param name="middlewareCallback"></param>
     public void Use(string path, MiddlewareCallback middleware)
     {
-        _middlewares.Add(middleware);
+//        _middlewares.Add(path, middleware);
     }
 
     /// <summary>

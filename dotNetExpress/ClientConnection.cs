@@ -112,7 +112,7 @@ internal class Client
                             new ProtocolViolationException("First line must consists of 3 parts"));
 
                     req.Method = HttpMethod.Parse(requestLineParts[0]);
-                    req.OriginalUrl = new Uri(requestLineParts[1], UriKind.Relative);
+                    req.OriginalUrl = requestLineParts[1];
                     var idx = requestLineParts[1].LastIndexOf('?');
                     if (idx > -1)
                     {

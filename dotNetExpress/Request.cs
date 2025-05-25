@@ -13,7 +13,7 @@ namespace dotNetExpress;
 /// <param name="app"></param>
 public class Request(Express app)
 {
-    public MessageBodyStreamReader StreamReader = null;
+    public MessageBodyStreamReader? StreamReader = null;
 
     #region Properties
 
@@ -29,7 +29,12 @@ public class Request(Express app)
     /// The req.baseUrl property is similar to the mountpath property of the app object,
     /// except app.mountpath returns the matched path pattern(s).
     /// </summary>
-    public string BaseUrl;
+    public string BaseUrl = "";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public string Url = "";
 
     /// <summary>
     /// 
@@ -46,7 +51,7 @@ public class Request(Express app)
     /// it is undefined, and is populated when you use body-parsing middleware such as
     /// express.json() or express.urlencoded().
     /// </summary>
-    public dynamic Body = null;
+    public dynamic? Body = null;
 
     /// <summary>
     /// When using cookie-parser middleware, this property is an object that contains
@@ -72,16 +77,14 @@ public class Request(Express app)
     public readonly NameValueCollection Headers = [];
 
     /// <summary>
-    /// 
-    /// 
     /// Contains the host derived from the HostName HTTP header.
     /// </summary>
-    public string Host;
+    public string Host = "";
 
     /// <summary>
     /// Contains the host derived from the HostName HTTP header.
     /// </summary>
-    public string Hostname;
+    public string Hostname = "";
 
     /// <summary>
     /// Contains the remote IP address of the request.
@@ -90,7 +93,7 @@ public class Request(Express app)
     /// derived from the left-most entry in the X-Forwarded-For header. This header can be set
     /// by the client or by the proxy.
     /// </summary>
-    public IPAddress Ip;
+    public IPAddress Ip = IPAddress.None;
 
     /// <summary>
     /// When the trust proxy setting does not evaluate to false, this property contains an
@@ -100,12 +103,12 @@ public class Request(Express app)
     /// For example, if X-Forwarded-For is client, proxy1, proxy2, req.ips would be
     /// ["client", "proxy1", "proxy2"], where proxy2 is the furthest downstream.
     /// </summary>
-    public IPAddress[] Ips;
+    public IPAddress[]? Ips;
 
     /// <summary>
     /// 
     /// </summary>
-    public Version HttpVersion;
+    public Version HttpVersion = new();
 
     public int HttpVersionMajor => HttpVersion.Major;
 
@@ -114,14 +117,14 @@ public class Request(Express app)
     /// <summary>
     /// Contains a string corresponding to the HTTP method of the request: GET, POST, PUT, and so on.
     /// </summary>
-    public HttpMethod Method;
+    public HttpMethod Method = HttpMethod.Head;
 
     /// <summary>
     /// This property is much like req.url; however, it retains the original request URL,
     /// allowing you to rewrite req.url freely for internal routing purposes. For example,
     /// the “mounting” feature of app.use() will rewrite req.url to strip the mount point.
     /// </summary>
-    public Uri OriginalUrl;
+    public string OriginalUrl = "";
 
     /// <summary>
     /// This property is an object containing properties mapped to the named route “parameters”.
@@ -133,7 +136,7 @@ public class Request(Express app)
     /// <summary>
     /// Contains the path part of the request URL.
     /// </summary>
-    public string Path;
+    public string Path = "";
 
     /// <summary>
     /// Contains the request protocol string: either http or (for TLS requests) https.
@@ -142,7 +145,7 @@ public class Request(Express app)
     /// the value of the X-Forwarded-Proto header field if present. This header can be
     /// set by the client or by the proxy.
     /// </summary>
-    public string Protocol;
+    public string Protocol = "HTTP";
 
     /// <summary>
     /// This property is an object containing a property for each query string parameter
@@ -185,7 +188,7 @@ public class Request(Express app)
     /// <summary>
     /// An array of subdomains in the domain name of the request.
     /// </summary>
-    public string[] Subdomains;
+    public string[] Subdomains = [];
 
     /// <summary>
     /// A Boolean property that is true if the request’s X-Requested-With header field is “XMLHttpRequest”,

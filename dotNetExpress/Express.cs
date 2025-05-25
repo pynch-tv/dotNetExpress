@@ -559,7 +559,10 @@ public class Express : IDisposable
     /// <param name="callback"></param>
     public void Use(string path, MiddlewareCallback callback)
     {
-        _router.Use(path, callback);
+        var router = new Router();
+        router.Use(callback);
+
+        _router.Use(path, router);
     }
 
     /// <summary>
