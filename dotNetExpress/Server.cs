@@ -74,8 +74,6 @@ public class Server : TcpListener
 
         Start();
 
-//        var connectionPool = Channel.CreateBounded<TcpClient>(10);
-
         // Accept loop
         _ = Task.Run(async () =>
         {
@@ -112,7 +110,7 @@ public class Server : TcpListener
                     }
                     finally
                     {
-                        connection.Close(); // Always close TcpClient
+                        // Don't close connection here, it is done in the handler
                     }
                 }
             });
