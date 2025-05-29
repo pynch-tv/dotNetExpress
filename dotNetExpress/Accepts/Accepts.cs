@@ -6,7 +6,7 @@ internal class Accepts
 
     private readonly Dictionary<string, string> _headers;
 
-    private string[] _types;
+    private string[]? _types;
 
     /**
      * Check if the given `type(s)` is acceptable, returning
@@ -64,15 +64,15 @@ internal class Accepts
     /// </summary>
     /// <param name="types"></param>
     /// <returns></returns>
-    internal string[] Types(string[] types)
+    internal string[]? Types(string[] types)
     {
         // no types, return all requested types
         if (types.Length == 0)
             return _negotiator.MediaTypes();
 
-        // no accept header, return first given type
-        if (null == _headers["accept"])
-            return new string[] { types[0] };
+        // No accept header, return first given type
+        if (!_headers.TryGetValue("accept", out var accept))
+            return [types[0]];
 
         var mimes = types.Select(extToMime).ToArray();
         var accepts = _negotiator.MediaTypes(mimes.Where(validMime).ToArray());
@@ -80,7 +80,7 @@ internal class Accepts
         if (!accepts.Any()) return null;
         var first = accepts.ElementAt(0);
 
-        return null == first ? null : new[] { types[Array.IndexOf(mimes, first)]};
+        return null == first ? null : [types[Array.IndexOf(mimes, first)]];
     }
 
     /// <summary>
