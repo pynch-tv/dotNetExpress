@@ -77,7 +77,7 @@ internal class Client
                     // flexibility than a TcpClient offers, consider using AcceptSocket.
                     //                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Lets keep the connection open");
 
-                    Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) step 999 {sw.ElapsedMilliseconds}ms");
+                    //Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) step 999 {sw.ElapsedMilliseconds}ms");
 
                     continue;
                 }

@@ -156,12 +156,12 @@ public class ServerResponse
     /// </summary>
     /// <param name="buffer"></param>
     /// <param name="encoding"></param>
-    public async Task<bool> Write(string buffer, Encoding? encoding = null)
+    public bool Write(string buffer, Encoding? encoding = null)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
         if (!HeadersSent)
-            await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+            WriteHead(_httpStatusCode, _httpStatusCode.ToString());
 
         encoding ??= Encoding.UTF8;
 
@@ -170,15 +170,14 @@ public class ServerResponse
 
         if (bodyLength <= 0) return true;
 
-        await _stream.WriteAsync(body.AsMemory(0, bodyLength));
-        //await _stream.FlushAsync();
+        _stream.WriteAsync(body.AsMemory(0, bodyLength));
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
-        return true;
+        return false;
     }
 
-    protected async Task<bool> Write(ReadOnlyMemory<byte> buffer)
+    protected bool Write(ReadOnlyMemory<byte> buffer)
     {
         // The first time response.write() is called, it will send the buffered header
         // information and the first chunk of the body to the client
@@ -190,22 +189,20 @@ public class ServerResponse
                 Set("Transfer-Encoding", "chunked");
             }
 
-            await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+            WriteHead(_httpStatusCode, _httpStatusCode.ToString());
         }
 
         if (_chunked)
-            await Write($"{buffer.Length:X}\r\n");
+            Write($"{buffer.Length:X}\r\n");
 
-        await _stream.WriteAsync(buffer);
+        _stream.WriteAsync(buffer);
 
         if (_chunked)
-            await _stream.WriteAsync(CrLf);
-
-//        await _stream.FlushAsync();
+            _stream.WriteAsync(CrLf);
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -213,18 +210,18 @@ public class ServerResponse
     /// like 404. The last argument, headers, are the response headers. Optionally one can give
     /// a human-readable statusMessage as the second argument.
     /// </summary>
-    private async Task WriteHead()
+    private void WriteHead()
     {
-        await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
+        WriteHead(_httpStatusCode, _httpStatusCode.ToString());
     }
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="statusCode"></param>
-    public virtual async Task WriteHead(HttpStatusCode statusCode)
+    public virtual void WriteHead(HttpStatusCode statusCode)
     {
-        await WriteHead(statusCode, statusCode.ToString());
+        WriteHead(statusCode, statusCode.ToString());
     }
 
     /// <summary>
@@ -233,7 +230,7 @@ public class ServerResponse
     /// <param name="statusCode"></param>
     /// <param name="statusMessage"></param>
     /// <param name="headers"></param>
-    public virtual async Task WriteHead(HttpStatusCode statusCode, string statusMessage, Dictionary<string, string>? headers = null)
+    public virtual void WriteHead(HttpStatusCode statusCode, string statusMessage, Dictionary<string, string>? headers = null)
     {
         if (null != headers)
             foreach (var hdr in headers)
@@ -272,8 +269,8 @@ public class ServerResponse
         var headerLength = Encoding.UTF8.GetByteCount(headerString);
 
         // write out the headers in 1 write
-        await _stream.WriteAsync(header.AsMemory(0, headerLength));
-        await _stream.FlushAsync();
+        _stream.WriteAsync(header.AsMemory(0, headerLength));
+        _stream.FlushAsync();
 
         #endregion
 
@@ -287,11 +284,11 @@ public class ServerResponse
     /// </summary>
     /// <param name="data"></param>
     /// <param name="encoding"></param>
-    public async Task End(string data, Encoding? encoding = null)
+    public void End(string data, Encoding? encoding = null)
     {
-        await Write(data, encoding ?? Encoding.UTF8);
+        Write(data, encoding ?? Encoding.UTF8);
 
-        await End();
+        End();
     }
 
     /// <summary>
@@ -299,15 +296,15 @@ public class ServerResponse
     /// that server should consider this message complete. The method, response.end(),
     /// MUST be called on each response.
     /// </summary>
-    public async Task End()
+    public void End()
     {
         if (_chunked)
-            await Write($"0\r\n\r\n");
+            Write($"0\r\n\r\n");
 
         if (!HeadersSent)
-            await WriteHead();
+            WriteHead();
 
-        await _stream.FlushAsync();
+        _stream.FlushAsync();
     }
 
 }

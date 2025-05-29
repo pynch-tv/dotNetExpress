@@ -13,7 +13,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static async Task ParseJson(Request req, Response res, NextCallback? next = null)
+    public static void ParseJson(Request req, Response res, NextCallback? next = null)
     {
         if (null != req.Body)
         {   //  already parsed
@@ -48,7 +48,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static async Task ParseText(Request req, Response res, NextCallback? next = null)
+    public static void ParseText(Request req, Response res, NextCallback? next = null)
     {
         if (null != req.Body)
         {
@@ -77,7 +77,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static async Task ParseRaw(Request req, Response res, NextCallback? next = null)
+    public static void ParseRaw(Request req, Response res, NextCallback? next = null)
     {
         if (null != req.Body)
         {
@@ -111,7 +111,7 @@ public class BodyParser
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public static async Task ParseUrlEncoded(Request req, Response res, NextCallback? next = null)
+    public static void ParseUrlEncoded(Request req, Response res, NextCallback? next = null)
     {
         if (null != req.Body)
         {

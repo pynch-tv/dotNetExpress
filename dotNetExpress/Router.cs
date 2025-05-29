@@ -101,7 +101,7 @@ public class Router
             _gotoNext = false;
             try
             {
-                await middleware(req, res, next =>
+                middleware(req, res, next =>
                 {
                     if (null != next)
                         throw next;
@@ -114,22 +114,22 @@ public class Router
             {
                 foreach (var errorCallback in _errorHandler)
                 {
-                    await errorCallback(e, req, res, next => { _gotoNext = true; });
+                    errorCallback(e, req, res, next => { _gotoNext = true; });
                     if (!_gotoNext) break;
                 }
 
-                await res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
+                res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
                 return true;
             }
             catch (Exception e)
             {
                 foreach (var errorCallback in _errorHandler)
                 {
-                    await errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
+                    errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
                     if (!_gotoNext) break;
                 }
 
-                await res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
+                res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
                 return true;
             }
         }
@@ -142,7 +142,7 @@ public class Router
                 _gotoNext = false;
                 try
                 {
-                    await middleware(req, res, next =>
+                    middleware(req, res, next =>
                     {
                         if (null != next)
                             throw next; // throw the error to the error handler
@@ -156,22 +156,22 @@ public class Router
                 {
                     foreach (var errorCallback in _errorHandler)
                     {
-                        await errorCallback(e, req, res, next => { _gotoNext = true; });
+                        errorCallback(e, req, res, next => { _gotoNext = true; });
                         if (!_gotoNext) break;
                     }
 
-                    await res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
+                    res.Status(e.Status).Json(new { status = e.Status, title = e.Title, detail = e.Detail });
                     return true;
                 }
                 catch (Exception e)
                 {
                     foreach (var errorCallback in _errorHandler)
                     {
-                        await errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
+                        errorCallback(e as ExpressException, req, res, next => { _gotoNext = true; });
                         if (!_gotoNext) break;
                     }
 
-                    await res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
+                    res.Status(500).Json(new { status = 500, title = "Exception", description = e.Message });
                     return true;
                 }
             }
@@ -190,12 +190,12 @@ public class Router
             }
 
         }
-        await res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" });
+        res.Status(404).Json(new { code = 404, title = "Path not found", detail = $"Given Path {req.OriginalUrl} not found" });
 
 
         if (null == _catchAll) return false;
 
-        await _catchAll(req, res);
+        _catchAll(req, res);
 
         return true;
     }

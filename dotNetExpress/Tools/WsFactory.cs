@@ -36,7 +36,7 @@ public static class WsFactory
     /// </summary>
     /// <param name="req"></param>
     /// <param name="res"></param>
-    public static async Task SendUpgradeResponse(Request req, Response res)
+    public static void SendUpgradeResponse(Request req, Response res)
     {
         var key = req.Get("sec-websocket-key");
 
@@ -44,7 +44,7 @@ public static class WsFactory
         res.Set("Connection", "Upgrade");
         res.Set("Sec-WebSocket-Accept", HashKey(key));
 
-        await res.WriteHead(HttpStatusCode.SwitchingProtocols);
+        res.WriteHead(HttpStatusCode.SwitchingProtocols);
 
         req.Protocol = "ws";
     }

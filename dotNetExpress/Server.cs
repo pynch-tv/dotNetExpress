@@ -13,6 +13,12 @@ public class Server : TcpListener
 {
     const int MaxHandlers = 10;
 
+    private Channel<TcpClient> _clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
+    {
+        SingleWriter = true,
+        SingleReader = false
+    });
+
     #region Constructor
 
     /// <summary>
@@ -70,14 +76,6 @@ public class Server : TcpListener
 
 //        var connectionPool = Channel.CreateBounded<TcpClient>(10);
 
-        // Use an unbounded channel
-        Channel<TcpClient> clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
-        {
-            SingleWriter = true,
-            SingleReader = false
-        });
-
-
         // Accept loop
         _ = Task.Run(async () =>
         {
@@ -86,51 +84,27 @@ public class Server : TcpListener
                 while (true)
                 {
                     TcpClient client = await this.AcceptTcpClientAsync();
-                    await clientQueue.Writer.WriteAsync(client);
+                    await _clientQueue.Writer.WriteAsync(client);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Accept loop error: {ex}");
-                clientQueue.Writer.Complete();
+                _clientQueue.Writer.Complete();
             }
         });
 
-        //// Start background handlers (1 per slot in pool)
-        //for (int i = 0; i < MaxHandlers; i++)
-        //{
-        //    _ = Task.Run(async () =>
-        //    {
-        //        await foreach (var connection in connectionPool.Reader.ReadAllAsync())
-        //        {
-        //            try
-        //            {
-        //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Started client");
-        //                RaiseHandleConnection(connection);
-        //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Ended client");
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Error in Client.Connection: {ex.Message}");
-        //            }
-        //        }
-        //    });
-        //}
-
-        // Handler pool (10 handlers)
-        int maxHandlers = 10;
-
-        for (int i = 0; i<maxHandlers; i++)
+        for (int i = 0; i < MaxHandlers; i++)
         {
             _ = Task.Run(async () =>
             {
-                await foreach (var connection in clientQueue.Reader.ReadAllAsync())
+                await foreach (var connection in _clientQueue.Reader.ReadAllAsync())
                 {
                     try
                     {
-                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Started client");
+                        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Started client");
                         RaiseHandleConnection(connection);
-                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Ended client");
+                        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Ended client");
                     }
                     catch (Exception ex)
                     {
@@ -143,26 +117,6 @@ public class Server : TcpListener
                 }
             });
         }
-
-    }
-
-
-    private async Task HandleIncomingConnectionAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var client = await AcceptTcpClientAsync(cancellationToken);
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Accepted client");
-            RaiseHandleConnection(client);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Error in Client.Connection: {ex.Message}");
-        }
-        finally
-        {
-            semaphore.Release();
-        }
     }
 
     /// <summary>
@@ -170,6 +124,8 @@ public class Server : TcpListener
     /// </summary>
     public void End()
     {
+        _clientQueue.Writer.Complete();
+
         Debug.WriteLine("Listener stopping");
     }
 

@@ -59,7 +59,7 @@ public class ServeStatic
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <param name="next"></param>
-    public async Task Serve(Request req, Response res, NextCallback? next = null)
+    public void Serve(Request req, Response res, NextCallback? next = null)
     {
         if (req.Method != HttpMethod.Get && req.Method != HttpMethod.Head)
         {
@@ -73,8 +73,8 @@ public class ServeStatic
             res.Set("Allow", "GET, HEAD");
             res.Set("Content-Length", 0);
 
-            await res.SendStatus(HttpStatusCode.MethodNotAllowed);
-            await res.End();
+            res.SendStatus(HttpStatusCode.MethodNotAllowed);
+            res.End();
 
             return;
         }
@@ -90,7 +90,7 @@ public class ServeStatic
 
         if (File.Exists(absolutePath))
         {
-            await res.SendFile(absolutePath);
+            res.SendFile(absolutePath);
 
             next?.Invoke();
         }

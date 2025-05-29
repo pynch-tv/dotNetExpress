@@ -187,7 +187,7 @@ public class Express : IDisposable
     internal async Task Dispatch(Request req, Response res)
     {
         if (await _router.Dispatch(req, res))
-            await res.End();
+            res.End();
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ public class Express : IDisposable
     /// </summary>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public static MiddlewareCallback Json(jsonOptions options = null)
+    public static MiddlewareCallback Json(jsonOptions? options = null)
     {
         return BodyParser.ParseJson;
     }
@@ -223,7 +223,7 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    public static MiddlewareCallback UrlEncoded(urlEncodedOptions options = null)
+    public static MiddlewareCallback UrlEncoded(urlEncodedOptions? options = null)
     {
         return BodyParser.ParseUrlEncoded;
     }

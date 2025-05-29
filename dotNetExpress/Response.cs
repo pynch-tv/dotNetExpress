@@ -108,7 +108,7 @@ public class Response : ServerResponse
     /// occurs, the callback function must explicitly handle the response process either
     /// by ending the request-response cycle, or by passing control to the next route.
     /// </summary>
-    public async Task Download(string path, string? filename = null, DownloadOptions? options = null) // todo: error callback
+    public void Download(string path, string? filename = null, DownloadOptions? options = null) // todo: error callback
     {
         options ??= new DownloadOptions();
         filename ??= Path.GetFileName(path);
@@ -161,13 +161,13 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="body"></param>
     /// <param name="options"></param> // dotNetExpress specific
-    public async Task Json(dynamic body, JsonSerializerOptions? options = null)
+    public void Json(dynamic body, JsonSerializerOptions? options = null)
     {
         var jsonString = JsonSerializer.Serialize(body, options);
 
         Type("application/json");
 
-        await Send(jsonString);
+        Send(jsonString);
     }
 
     /// <summary>
@@ -176,7 +176,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="body"></param>
     /// <exception cref="NotSupportedException"></exception>
-    public async Task Jsonp(dynamic body)
+    public void Jsonp(dynamic body)
     {
         throw new NotSupportedException();
     }
@@ -244,12 +244,12 @@ public class Response : ServerResponse
     /// Status defaults to “302 “Found”.
     /// </summary>
     /// <param name="path"></param>
-    public async Task Redirect(string path)
+    public void Redirect(string path)
     {
-        await Redirect(HttpStatusCode.Found, path);
+        Redirect(HttpStatusCode.Found, path);
     }
 
-    public async Task Redirect(HttpStatusCode code, string path)
+    public void Redirect(HttpStatusCode code, string path)
     {
         throw new NotSupportedException();
     }
@@ -260,10 +260,10 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="view"></param>
     /// <param name="locals"></param>
-    public async Task Render(string view, dynamic? locals = null)
+    public void Render(string view, dynamic? locals = null)
     {
         var html = App.Render(view, locals);
-        await Status(HttpStatusCode.OK).Send(html);
+        Status(HttpStatusCode.OK).Send(html);
     }
 
     /// <summary>
@@ -277,7 +277,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="body"></param>
     /// <returns></returns>
-    public async Task Send(string? body = null)
+    public void Send(string? body = null)
     {
         if (body == null) return;
 
@@ -286,7 +286,7 @@ public class Response : ServerResponse
         if (!HasHeader("Content-Length"))
             Set("Content-Length", rom.Length);
 
-        await Send(rom);
+        Send(rom);
     }
 
     /// <summary>
@@ -295,11 +295,11 @@ public class Response : ServerResponse
     /// <param name="body"></param>
     /// <returns></returns>
     /// <exception cref="NotSupportedException"></exception>
-    public async Task Send(object body)
+    public void Send(object body)
     {
         throw new NotSupportedException();
 
-        await End();
+        End();
     }
 
     /// <summary>
@@ -308,11 +308,11 @@ public class Response : ServerResponse
     /// <param name="body"></param>
     /// <returns></returns>
     /// <exception cref="NotSupportedException"></exception>
-    public async Task Send(bool body)
+    public void Send(bool body)
     {
         throw new NotSupportedException();
 
-        await End();
+        End();
     }
 
     /// <summary>
@@ -320,11 +320,11 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="buffer"></param>
     /// <returns></returns>
-    public async Task Send(byte[] buffer)
+    public void Send(byte[] buffer)
     {
         ReadOnlyMemory<byte> span = buffer;
 
-        await Send(span);
+        Send(span);
     }
 
     /// <summary>
@@ -332,11 +332,11 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="span"></param>
     /// <returns></returns>
-    public async Task Send(ReadOnlyMemory<byte> span)
+    public void Send(ReadOnlyMemory<byte> span)
     {
-        await Write(span);
+        Write(span);
 
-        await End();
+        End();
     }
 
     /// <summary>
@@ -344,13 +344,13 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="stream"></param>
     /// <returns></returns>
-    public async Task Send(Stream stream)
+    public void Send(Stream stream)
     {
-        await WriteHead(_httpStatusCode);
+        WriteHead(_httpStatusCode);
 
-        await stream.CopyToAsync(this._stream);
+        stream.CopyTo(this._stream);
 
-        await End();
+        End();
     }
 
     /// <summary>
@@ -365,13 +365,8 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="filename"></param>
     /// <param name="options"></param>
-    public async Task SendFile(string filename, SendFileOptions? options = null) // TODO callback
+    public void SendFile(string filename, SendFileOptions? options = null) 
     {
-        var sw = Stopwatch.StartNew();
-
-        Debug.WriteLine($"SendFile step 1 {filename} in {sw.ElapsedMilliseconds} ms");
-        sw.Restart();
-
         options ??= new SendFileOptions();
 
         if (options.DotFiles.Equals("deny", StringComparison.OrdinalIgnoreCase) && filename.StartsWith("."))
@@ -381,15 +376,9 @@ public class Response : ServerResponse
 
         var path = filename;
 
-        Debug.WriteLine($"SendFile step 2 {filename} in {sw.ElapsedMilliseconds} ms");
-        sw.Restart();
-
         var fi = new FileInfo(path);
         if (!fi.Exists)
             throw new FileNotFoundException("The file was not found.", path);
-
-        Debug.WriteLine($"SendFile step 3 {filename} in {sw.ElapsedMilliseconds} ms");
-        sw.Restart();
 
         // Headers
         foreach (var header in options.Headers)
@@ -399,17 +388,9 @@ public class Response : ServerResponse
 
         this.Set("Content-Length", fi.Length);
 
-        Debug.WriteLine($"SendFile step 4 {filename} in {sw.ElapsedMilliseconds} ms");
-        sw.Restart();
-
         var fileStream = File.OpenRead(path);
 
-        Debug.WriteLine($"SendFile step 5 {filename} in {sw.ElapsedMilliseconds} ms");
-        sw.Restart();
-
-        await Send(fileStream);
-
-        Debug.WriteLine($"SendFile step 99 {filename} in {sw.ElapsedMilliseconds} ms");
+        Send(fileStream);
     }
 
     /// <summary>
@@ -419,7 +400,7 @@ public class Response : ServerResponse
     /// </summary>
     /// <param name="code"></param>
     /// <exception cref="NotSupportedException"></exception>
-    public async Task SendStatus(HttpStatusCode code)
+    public void SendStatus(HttpStatusCode code)
     {
         _httpStatusCode = code;
 
@@ -431,10 +412,10 @@ public class Response : ServerResponse
             if (!HasHeader("Content-Length"))
                 Set("Content-Length", body.Length);
 
-            await Send(Encoding.Default.GetBytes(body));
+            Send(Encoding.Default.GetBytes(body));
         }
 
-        await End();
+        End();
     }
 
     /// <summary>

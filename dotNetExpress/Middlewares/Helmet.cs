@@ -36,7 +36,7 @@ public class Helmet
     /// <param name="res"></param>
     /// <param name="next"></param>
     /// <returns></returns>
-    private static async Task Checker(Request req, Response res, NextCallback? next)
+    private static void Checker(Request req, Response res, NextCallback? next)
     {
         res.Set(_defaults);
 

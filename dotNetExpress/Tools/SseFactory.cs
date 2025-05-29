@@ -18,13 +18,13 @@ public static class SseFactory
     /// 
     /// </summary>
     /// <param name="res"></param>
-    public static async Task SendResponse(Request _, Response res)
+    public static void SendResponse(Request _, Response res)
     {
         res.Set("Content-Type", "text/event-stream");
         res.Set("Connection", "keep-alive");
         res.Set("Cache-Control", "no-cache");
         res.Set("Keep-Alive");
 
-        await res.WriteHead(HttpStatusCode.OK);
+        res.WriteHead(HttpStatusCode.OK);
     }
 }
