@@ -1,12 +1,10 @@
-﻿using System.Collections.Specialized;
-
-namespace dotNetExpress.Lookup;
+﻿namespace dotNetExpress.Lookup;
 
 internal class Accepts
 {
     private readonly Negotiator _negotiator;
 
-    private readonly NameValueCollection _headers;
+    private readonly Dictionary<string, string> _headers;
 
     private string[] _types;
 

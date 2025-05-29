@@ -7,20 +7,32 @@ namespace dotNetExpress;
 
 internal class Client
 {
-    private long _startTicks = DateTime.Now.Ticks;
+    static int ReqNr = 0;
+
 
     public async Task Connection(Express express, TcpClient tcpClient)
     {
+
+        var sw = Stopwatch.StartNew();
+
+//        Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) step 1 {sw.ElapsedMilliseconds}ms");
+
         try
         {
             if (!tcpClient.Connected)
                 return;
 
+//            Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) step 2 {sw.ElapsedMilliseconds}ms");
+
+            sw.Restart();
+
             var stream = tcpClient.GetStream();
 
             while (tcpClient.Connected)
             {
-                //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) waiting to make a Request object");
+                ReqNr++;
+
+//                Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) step 3 {sw.ElapsedMilliseconds}ms");
 
                 if (!GetRequest(express, tcpClient, out Request req))
                     throw new HttpProtocolException(500, "Unable to construct Request", new ProtocolViolationException("Unable to construct Request"));
@@ -30,17 +42,14 @@ internal class Client
 
                 req.Res.WriteHeaders += (sender, e) =>
                 {
-                    var durationInMs = (DateTime.Now.Ticks - _startTicks) / TimeSpan.TicksPerMillisecond;
-                    req.Res.Set("X-Response-Time", durationInMs.ToString());
+                    req.Res.Set("X-Response-Time", sw.ElapsedMilliseconds);
                 };
-
-                //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) We have a Request object");
 
                 stream.ReadTimeout = express.KeepAliveTimeout * 1000; 
 
-                if (!string.IsNullOrEmpty(req.Get("Content-Length")))
+                if (req.Headers.TryGetValue("Content-Length", out var cl) && cl != null && !string.IsNullOrEmpty(cl))
                 {
-                    var contentLength = int.Parse(req.Get("Content-Length"));
+                    var contentLength = int.Parse(cl);
 
                     // When a content-length is available, a stream is provided in Request
                     req.StreamReader = new MessageBodyStreamReader(stream);
@@ -51,22 +60,25 @@ internal class Client
 
                 req.StreamReader?.Close();
 
-                if (req.Res.Get("Upgrade") != null && req.Res.Get("Upgrade").Equals("WebSocket", StringComparison.OrdinalIgnoreCase))
+                if (req.Headers.TryGetValue("Upgrade", out var upgrade) && upgrade != null && upgrade.Equals("WebSocket", StringComparison.OrdinalIgnoreCase))
                 {
                     Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) websocket upgrade");
                     break; // websocket
                 }
-                else if (req.Res.Get("Content-Type") != null && req.Res.Get("Content-Type").Equals("text/event-stream", StringComparison.OrdinalIgnoreCase))
+                else if (req.Headers.TryGetValue("Content-Type", out var contentType) && contentType != null && contentType.Equals("text/event-stream", StringComparison.OrdinalIgnoreCase))
                 {
                     Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) text/event-stream");
                     break; // Server-Sent Events
                 }
-                else if (req.Res.Get("Connection") != null && req.Res.Get("Connection").Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
+                else if (req.Headers.TryGetValue("Connection", out var connection) && connection != null && connection.Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
                 {
                     // https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.accepttcpclient?view=net-8.0
                     // Remark: When you are through with the TcpClient, be sure to call its Close method. If you want greater
                     // flexibility than a TcpClient offers, consider using AcceptSocket.
-//                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Lets keep the connection open");
+                    //                    Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Lets keep the connection open");
+
+                    Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) step 999 {sw.ElapsedMilliseconds}ms");
+
                     continue;
                 }
                 else
@@ -84,12 +96,6 @@ internal class Client
             tcpClient.Close();
         }
     }
-
-    private static void Res_WriteHeaders(object? sender, System.Collections.Specialized.NameValueCollection e)
-    {
-        throw new NotImplementedException();
-    }
-
 
     /// <summary>
     /// 
@@ -117,12 +123,6 @@ internal class Client
                 var line = streamReader.ReadLine();
                 if (string.IsNullOrEmpty(line))
                     break;
-
-                if (lineNumber == 1)
-                {
-                    Debug.WriteLine($"---------------------------- {_startTicks}");
-                    _startTicks = DateTime.Now.Ticks;
-                }
 
                 if (lineNumber++ == 1)
                 {
@@ -167,16 +167,16 @@ internal class Client
             }
         }
 
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) {req.Protocol} {req.HttpVersion} {req.Path}");
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Headers:");
-        foreach (string header in req.Headers)
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) \t{header}: {req.Headers[header]}");
+        //Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) {req.Protocol} {req.HttpVersion} {req.Path}");
+        //Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) Headers:");
+        //foreach (var header in req.Headers)
+        //    Debug.WriteLine($"[{ReqNr}] ({DateTime.Now:HH.mm.ss:ffff}) \t{header.Key}: {header.Value}");
 
         req.Host = req.Headers["host"];
         req.Hostname = req.Headers["host"]?.Split(':')[0];
 
-        if (null != req.Headers["X-Requested-With"])
-            req.Xhr = req.Headers["X-Requested-With"]!.Equals("XMLHttpRequest");
+        if (req.Headers.TryGetValue("X-Requested-With", out var requestedWith) && requestedWith != null)
+            req.Xhr = requestedWith!.Equals("XMLHttpRequest");
 
         // Construct Response whilst we are at it
         req.Res = new Response(app, tcpClient.GetStream());

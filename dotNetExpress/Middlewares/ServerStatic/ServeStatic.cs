@@ -2,6 +2,7 @@
 using System.Net;
 using dotNetExpress;
 using dotNetExpress.Delegates;
+using dotNetExpress.Exceptions;
 using dotNetExpress.Options;
 
 namespace dotnetExpress.Middlewares.ServerStatic;
@@ -70,7 +71,8 @@ public class ServeStatic
 
             // method not allowed
             res.Set("Allow", "GET, HEAD");
-            res.Set("Content-Length", "0");
+            res.Set("Content-Length", 0);
+
             await res.SendStatus(HttpStatusCode.MethodNotAllowed);
             await res.End();
 
@@ -84,14 +86,15 @@ public class ServeStatic
         // Concat with root directory
         var absolutePath = Path.Combine(_root, relativePath);
 
-        Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
+//        Debug.WriteLine($"===========================> ServeStatic: {relativePath}");
 
-//        if (File.Exists(absolutePath))
+        if (File.Exists(absolutePath))
         {
             await res.SendFile(absolutePath);
-            return; // do not evaluate next
-        }
 
-//        next?.Invoke(null);
+            next?.Invoke();
+        }
+        else
+            next?.Invoke(new ExpressException(HttpStatusCode.NotFound, $"Resource {absolutePath} not found"));
     }
 }

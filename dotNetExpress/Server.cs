@@ -1,6 +1,8 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
-using System.Diagnostics;
+using System.Threading.Channels;
+using dotNetExpress;
 
 namespace dotNetExpress;
 
@@ -9,9 +11,7 @@ namespace dotNetExpress;
 /// </summary>
 public class Server : TcpListener
 {
-    private Thread? _tcpListenerThread;
-
-    private CancellationTokenSource _cancellation = new();
+    const int MaxHandlers = 10;
 
     #region Constructor
 
@@ -48,7 +48,7 @@ public class Server : TcpListener
     /// <summary>
     /// 
     /// </summary>
-    public event EventHandler<TcpClient> HandleConnection;
+    public event EventHandler<TcpClient>? HandleConnection;
 
     /// <summary>
     /// 
@@ -62,73 +62,102 @@ public class Server : TcpListener
 
     #endregion
 
-    /// <summary>
-    /// https://www.codeproject.com/Articles/5270779/High-Performance-TCP-Client-Server-using-TCPListen
-    /// </summary>
-    /// <param name="express"></param>
     public async Task Begin(Express express)
     {
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) TcpListener starting");
+
         Start();
 
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Listener starting");
+//        var connectionPool = Channel.CreateBounded<TcpClient>(10);
 
-        _ = Task.Run(() => RunListenerAsync(express, _cancellation.Token));
-    }
-
-    private async Task RunListenerAsync(Express express, CancellationToken cancellationToken)
-    {
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Listener started");
-
-        using var semaphore = new SemaphoreSlim(express.MaxConcurrentListeners);
-        var tasks = new List<Task>();
-        int awaiterTimeoutInMS = 500;
-
-        cancellationToken.Register(Stop);
-
-        try
+        // Use an unbounded channel
+        Channel<TcpClient> clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
         {
-            while (!cancellationToken.IsCancellationRequested)
+            SingleWriter = true,
+            SingleReader = false
+        });
+
+
+        // Accept loop
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                // Remove completed tasks
-                tasks.RemoveAll(t => t.IsCompleted);
-
-                // Start new tasks if we have capacity
-                while (tasks.Count < express.MaxConcurrentListeners)
+                while (true)
                 {
-                    await semaphore.WaitAsync(cancellationToken);
-
-                    var task = HandleIncomingConnectionAsync(semaphore, cancellationToken);
-                    tasks.Add(task);
+                    TcpClient client = await this.AcceptTcpClientAsync();
+                    await clientQueue.Writer.WriteAsync(client);
                 }
-
-                // Wait a bit to allow some task completions
-                await Task.WhenAny(tasks.Concat([Task.Delay(awaiterTimeoutInMS, cancellationToken)]));
             }
-        }
-        catch (OperationCanceledException)
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Accept loop error: {ex}");
+                clientQueue.Writer.Complete();
+            }
+        });
+
+        //// Start background handlers (1 per slot in pool)
+        //for (int i = 0; i < MaxHandlers; i++)
+        //{
+        //    _ = Task.Run(async () =>
+        //    {
+        //        await foreach (var connection in connectionPool.Reader.ReadAllAsync())
+        //        {
+        //            try
+        //            {
+        //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Started client");
+        //                RaiseHandleConnection(connection);
+        //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Ended client");
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Error in Client.Connection: {ex.Message}");
+        //            }
+        //        }
+        //    });
+        //}
+
+        // Handler pool (10 handlers)
+        int maxHandlers = 10;
+
+        for (int i = 0; i<maxHandlers; i++)
         {
-            // Graceful exit on cancellation
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Inner loop exception: {ex.Message}");
-            cancellationToken.ThrowIfCancellationRequested();
+            _ = Task.Run(async () =>
+            {
+                await foreach (var connection in clientQueue.Reader.ReadAllAsync())
+                {
+                    try
+                    {
+                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Started client");
+                        RaiseHandleConnection(connection);
+                        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Ended client");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Handler exception: {ex}");
+                    }
+                    finally
+                    {
+                        connection.Close(); // Always close TcpClient
+                    }
+                }
+            });
         }
 
-        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Listener stopped");
     }
+
 
     private async Task HandleIncomingConnectionAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)
     {
         try
         {
-            // Debug.WriteLine($"[T{Task.CurrentId}] ({DateTime.Now:HH.mm.ss:ffff}) Awaiting new connection");
             var client = await AcceptTcpClientAsync(cancellationToken);
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Accepted client");
             RaiseHandleConnection(client);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[T{Task.CurrentId}] ({DateTime.Now:HH.mm.ss:ffff}) Error in Client.Connection: {ex.Message}");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Error in Client.Connection: {ex.Message}");
         }
         finally
         {
@@ -141,10 +170,6 @@ public class Server : TcpListener
     /// </summary>
     public void End()
     {
-        // Note: calling Cancel here will Stop this listener.
-        //       see the Token.Register function where this.Stop() is called.
-        _cancellation.Cancel();
-
         Debug.WriteLine("Listener stopping");
     }
 

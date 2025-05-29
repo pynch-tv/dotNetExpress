@@ -5,7 +5,6 @@ using dotNetExpress.Delegates;
 using dotNetExpress.Exceptions;
 using dotnetExpress.Middlewares.BodyParser;
 using dotnetExpress.Middlewares.ServerStatic;
-using System.Diagnostics;
 
 namespace dotNetExpress;
 

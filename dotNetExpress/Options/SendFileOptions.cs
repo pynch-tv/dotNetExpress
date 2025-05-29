@@ -1,6 +1,4 @@
-﻿using System.Collections.Specialized;
-
-namespace dotNetExpress.Options;
+﻿namespace dotNetExpress.Options;
 
 public class SendFileOptions 
 {
@@ -22,7 +20,7 @@ public class SendFileOptions
     /// <summary>
     /// Object containing HTTP headers to serve with the file.
     /// </summary>
-    public NameValueCollection Headers = [];
+    public Dictionary<string, string> Headers = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Option for serving dotfiles. Possible values are “allow”, “deny”, “ignore”.

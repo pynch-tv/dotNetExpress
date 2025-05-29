@@ -1,6 +1,4 @@
-﻿using System.Collections.Specialized;
-
-namespace dotNetExpress.Options;
+﻿namespace dotNetExpress.Options;
 
 public class DownloadOptions
 {
@@ -17,7 +15,7 @@ public class DownloadOptions
     /// <summary>
     /// Object containing HTTP headers to serve with the file.
     /// </summary>
-    public NameValueCollection Headers = [];
+    public readonly Dictionary<string, string> Headers = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Option for serving dotfiles. Possible values are “allow”, “deny”, “ignore”.

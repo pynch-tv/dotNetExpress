@@ -1,11 +1,10 @@
-﻿using System.Collections.Specialized;
-using dotNetExpress.Delegates;
+﻿using dotNetExpress.Delegates;
 
 namespace dotNetExpress.Middlewares;
 
 public class Helmet 
 {
-    static readonly NameValueCollection _defaults = new();
+    static readonly Dictionary<string, string> _defaults = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// 

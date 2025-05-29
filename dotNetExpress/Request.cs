@@ -39,12 +39,12 @@ public class Request(Express app)
     /// <summary>
     /// 
     /// </summary>
-    public Socket Socket;
+    public Socket? Socket;
 
     /// <summary>
     /// 
     /// </summary>
-    public Socket Connection { get { return Socket; } } 
+    public Socket? Connection { get { return Socket; } } 
 
     /// <summary>
     /// Contains key-value pairs of data submitted in the request body. By default,
@@ -74,7 +74,7 @@ public class Request(Express app)
     /// <summary>
     /// 
     /// </summary>
-    public readonly NameValueCollection Headers = [];
+    public readonly Dictionary<string, string> Headers = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Contains the host derived from the HostName HTTP header.
@@ -264,7 +264,11 @@ public class Request(Express app)
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public string Get(string key) => Headers[key.ToLower()];
+    public string? Get(string key)
+    {
+        if (Headers.TryGetValue(key, out var value)) return value;
+        else return null;
+    }
 
     /// <summary>
     /// Returns the matching content type if the incoming request’s “Content-Type” HTTP header

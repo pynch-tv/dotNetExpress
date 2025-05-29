@@ -1,5 +1,4 @@
-﻿using System.Collections.Specialized;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,16 +15,24 @@ public class ServerResponse
 
     protected HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
-    protected readonly NameValueCollection _headers = [];
+    protected Dictionary<string, string> _headers = new(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly ReadOnlyMemory<byte> CrLf = new byte[] { 0x0D, 0x0A };
+    private static readonly ReadOnlyMemory<byte> CrLf = "\r\n"u8.ToArray();
 
-    public event EventHandler<NameValueCollection> WriteHeaders;
+    #region Events
 
-    protected virtual void RaiseWriteHeaders(NameValueCollection e)
+    public event EventHandler<Dictionary<string, string>>? WriteHeaders;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="e"></param>
+    protected virtual void RaiseWriteHeaders(Dictionary<string, string> e)
     {
         WriteHeaders?.Invoke(this, e);
     }
+
+    #endregion
 
     /// <summary>
     /// 
@@ -79,31 +86,57 @@ public class ServerResponse
     /// <param name="field"></param>
     /// <param name="value"></param>
     /// <returns></returns>
-    protected void SetHeader(string field, string? value)
+    public void Set(string field, string? value = null)
     {
-        _headers[field] = value;
+        if (_headers.TryGetValue(field, out var currentValue))
+        {
+            if (string.IsNullOrEmpty(value)) return;
+            else
+            {
+                var content = currentValue?.Split(',');
+                if (content != null && !content.Contains(value))
+                    _headers[field] += ", " + value;
+            }
+        }
+        else
+            if (null != value)
+                _headers[field] = value;
     }
 
     /// <summary>
-    /// Returns a shallow copy of the current outgoing headers. Since a shallow copy is used,
-    /// array values may be mutated without additional calls to various header-related http
-    /// module methods. The keys of the returned object are the header names and the values
-    /// are the respective header values. All header names are lowercase.
+    /// Sets the response’s HTTP header field to value. To set multiple fields at once, pass an object as the parameter.
     /// </summary>
-    /// <returns>NameValueCollection</returns>
-    public NameValueCollection GetHeaders()
+    /// <param name="collection"></param>
+    public void Set(Dictionary<string, string> collection)
     {
-        return _headers;
+        foreach (var kvp in collection)
+            _headers.Add(kvp.Key, kvp.Value);
     }
 
     /// <summary>
-    /// Returns an array containing the unique names of the current outgoing headers.
-    /// All header names are lowercase.
+    /// 
     /// </summary>
+    /// <param name="field"></param>
+    /// <param name="value"></param>
+    public void Set(string field, int value)
+    {
+        _headers[field] = value.ToString();
+    }
+
+    public void Set(string field, long value)
+    {
+        _headers[field] = value.ToString();
+    }
+
+    /// <summary>
+    /// Returns the HTTP response header specified by field. The match is case-insensitive.
+    /// </summary>
+    /// <param name="field"></param>
     /// <returns></returns>
-    protected string?[] GetHeaderNames()
+    public string? Get(string field)
     {
-        return _headers.AllKeys;
+        if (_headers.TryGetValue(field, out var value)) return value;
+        return "";
     }
 
     /// <summary>
@@ -112,9 +145,10 @@ public class ServerResponse
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    protected bool HasHeader(string name)
+    protected bool HasHeader(string key)
     {
-        return _headers.Cast<string>().Any(header => header.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (_headers.TryGetValue(key, out _)) return true;
+        else return false;
     }
 
     /// <summary>
@@ -137,7 +171,7 @@ public class ServerResponse
         if (bodyLength <= 0) return true;
 
         await _stream.WriteAsync(body.AsMemory(0, bodyLength));
-        await _stream.FlushAsync();
+        //await _stream.FlushAsync();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
@@ -153,7 +187,7 @@ public class ServerResponse
             if (!HasHeader("Content-Length"))
             {
                 _chunked = true;
-                SetHeader("Transfer-Encoding", "chunked");
+                Set("Transfer-Encoding", "chunked");
             }
 
             await WriteHead(_httpStatusCode, _httpStatusCode.ToString());
@@ -167,7 +201,7 @@ public class ServerResponse
         if (_chunked)
             await _stream.WriteAsync(CrLf);
 
-        await _stream.FlushAsync();
+//        await _stream.FlushAsync();
 
         // Returns true if the entire data was flushed successfully to the kernel buffer.
         // Returns false if all or part of the data was queued in user memory
@@ -199,11 +233,11 @@ public class ServerResponse
     /// <param name="statusCode"></param>
     /// <param name="statusMessage"></param>
     /// <param name="headers"></param>
-    public virtual async Task WriteHead(HttpStatusCode statusCode, string statusMessage, NameValueCollection? headers = null)
+    public virtual async Task WriteHead(HttpStatusCode statusCode, string statusMessage, Dictionary<string, string>? headers = null)
     {
         if (null != headers)
-            foreach (string key in headers)
-                SetHeader(key, headers[key]);
+            foreach (var hdr in headers)
+                Set(hdr.Key, hdr.Value);
 
         RaiseWriteHeaders(_headers);
 
@@ -218,12 +252,12 @@ public class ServerResponse
         // construct/append headers
         if (_sendDate)
             if (!HasHeader("Date"))
-                SetHeader("Date", DateTime.Now.ToUniversalTime().ToString("r"));
+                Set("Date", DateTime.Now.ToUniversalTime().ToString("r"));
 
         #region Stringify headers
 
-        foreach (string key in _headers)
-            headerContent.AppendLine($"{key}: {_headers[key]}");
+        foreach (var header2 in _headers)
+            headerContent.AppendLine($"{header2.Key}: {header2.Value}");
 
         // last header line is empty
         headerContent.AppendLine();
@@ -272,6 +306,8 @@ public class ServerResponse
 
         if (!HeadersSent)
             await WriteHead();
+
+        await _stream.FlushAsync();
     }
 
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -84,8 +84,11 @@ public class Response : ServerResponse
     }
 
     /// <summary>
-    /// Clears the cookie specified by name. For details about the options object, see res.cookie().
+    /// 
     /// </summary>
+    /// <param name="name"></param>
+    /// <param name="options"></param>
+    /// <exception cref="NotImplementedException"></exception>
     public void ClearCookie(string name, CookieOptions? options = null)
     {
         _ = options ?? new CookieOptions();
@@ -147,16 +150,6 @@ public class Response : ServerResponse
     public void Format(object obj)
     {
         throw new NotSupportedException();
-    }
-
-    /// <summary>
-    /// Returns the HTTP response header specified by field. The match is case-insensitive.
-    /// </summary>
-    /// <param name="field"></param>
-    /// <returns></returns>
-    public string? Get(string field)
-    {
-        return _headers[field];
     }
 
     /// <summary>
@@ -374,6 +367,11 @@ public class Response : ServerResponse
     /// <param name="options"></param>
     public async Task SendFile(string filename, SendFileOptions? options = null) // TODO callback
     {
+        var sw = Stopwatch.StartNew();
+
+        Debug.WriteLine($"SendFile step 1 {filename} in {sw.ElapsedMilliseconds} ms");
+        sw.Restart();
+
         options ??= new SendFileOptions();
 
         if (options.DotFiles.Equals("deny", StringComparison.OrdinalIgnoreCase) && filename.StartsWith("."))
@@ -381,23 +379,37 @@ public class Response : ServerResponse
             // TODO call error handler
         }
 
-        //var path = Path.Combine(options.Root, filename);
-        //if (!File.Exists(path))
-        //{
-        //    // TODO call error handler
-        //}
-
         var path = filename;
 
-        var file = new FileInfo(path);
+        Debug.WriteLine($"SendFile step 2 {filename} in {sw.ElapsedMilliseconds} ms");
+        sw.Restart();
+
+        var fi = new FileInfo(path);
+        if (!fi.Exists)
+            throw new FileNotFoundException("The file was not found.", path);
+
+        Debug.WriteLine($"SendFile step 3 {filename} in {sw.ElapsedMilliseconds} ms");
+        sw.Restart();
 
         // Headers
-        _headers.Add(options.Headers);
+        foreach (var header in options.Headers)
+            _headers.Add(header.Key, header.Value);
         if (options.LastModified)
-            _headers.Add(new NameValueCollection() { { "Last-Modified", file.LastWriteTime.ToUniversalTime().ToString("r") } });
+            Set("Last-Modified", fi.LastWriteTime.ToUniversalTime().ToString("r"));
+
+        this.Set("Content-Length", fi.Length);
+
+        Debug.WriteLine($"SendFile step 4 {filename} in {sw.ElapsedMilliseconds} ms");
+        sw.Restart();
 
         var fileStream = File.OpenRead(path);
+
+        Debug.WriteLine($"SendFile step 5 {filename} in {sw.ElapsedMilliseconds} ms");
+        sw.Restart();
+
         await Send(fileStream);
+
+        Debug.WriteLine($"SendFile step 99 {filename} in {sw.ElapsedMilliseconds} ms");
     }
 
     /// <summary>
@@ -445,39 +457,6 @@ public class Response : ServerResponse
     public Response Status(int code)
     {
         return Status((HttpStatusCode)code);
-    }
-
-    /// <summary>
-    /// Sets the response’s HTTP header field to value.
-    /// </summary>
-    /// <param name="field"></param>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public void Set(string field, string value)
-    {
-        if (!string.IsNullOrEmpty(_headers[field]))
-        {
-            var content = _headers[field]?.Split(',');
-            if (content != null && !content.Contains(value))   
-                _headers[field] += ", " + value;
-        }
-        else
-            _headers[field] = value;
-    }
-
-    public void Set(NameValueCollection collection)
-    {
-        _headers.Add(collection);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="field"></param>
-    /// <param name="value"></param>
-    public void Set(string field, int value)
-    {
-        Set(field, value.ToString());
     }
 
     /// <summary>
