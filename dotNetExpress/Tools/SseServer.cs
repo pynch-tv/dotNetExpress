@@ -128,7 +128,7 @@ public class SseServer
         try {
             foreach (var item in _sseSockets.Where(kvp => kvp.Value.Socket == value).ToList())
             {
-                Debug.WriteLine($"SSE Server.Remove: {item.Key}");
+                Debug.WriteLine($"SSE Server Remove: {item.Key}");
                 _sseSockets.Remove(item.Key);
             }
         }
