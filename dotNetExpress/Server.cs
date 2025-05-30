@@ -11,9 +11,9 @@ namespace dotNetExpress;
 /// </summary>
 public class Server : TcpListener
 {
-    const int MaxHandlers = 10;
+    private int _maxHandlers = 10;
 
-        private readonly Channel<TcpClient> _clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
+    private readonly Channel<TcpClient> _clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
         {
             SingleWriter = true,
             SingleReader = false
@@ -71,14 +71,24 @@ public class Server : TcpListener
 
     #endregion
 
-    public async Task Begin()
+    public async Task Begin(Express express)
     {
         Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) TcpListener starting");
 
         Start();
 
-//        await RunUnbound();
-        await RunBound();
+        _maxHandlers = express.MaxConcurrentListeners;
+
+        switch (express.Channel.ToLower())
+        {
+            case "bound":
+                await RunBound();
+                break;
+            case "unbound":
+            default:
+                await RunUnbound();
+                break;
+        }       
     }
 
     private async Task RunUnbound()
@@ -105,7 +115,7 @@ public class Server : TcpListener
             }
         });
 
-        for (int i = 0; i < MaxHandlers; i++)
+        for (int i = 0; i < _maxHandlers; i++)
         {
             _ = Task.Run(async () =>
             {
@@ -151,7 +161,7 @@ public class Server : TcpListener
         });
 
         // Start background handlers (1 per slot in pool)
-        for (int i = 0; i < MaxHandlers; i++)
+        for (int i = 0; i < _maxHandlers; i++)
         {
             _ = Task.Run(async () =>
             {

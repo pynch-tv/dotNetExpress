@@ -81,6 +81,11 @@ public class Express : IDisposable
     /// </summary>
     public int MaxConcurrentListeners = 10;
 
+    /// <summary>
+    /// 
+    /// </summary>
+    public string Channel = "Bound";
+
     #endregion
 
     #region Constructor & Destructor
@@ -409,7 +414,7 @@ public class Express : IDisposable
             var connected = tcpClient.Connected ? "left open" : "closed";
         };
 
-        await Listener.Begin();
+        await Listener.Begin(this);
 
         callback?.Invoke();
 
