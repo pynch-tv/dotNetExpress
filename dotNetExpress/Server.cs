@@ -13,11 +13,14 @@ public class Server : TcpListener
 {
     const int MaxHandlers = 10;
 
-    private Channel<TcpClient> _clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
-    {
-        SingleWriter = true,
-        SingleReader = false
-    });
+        private readonly Channel<TcpClient> _clientQueue = Channel.CreateUnbounded<TcpClient>(new UnboundedChannelOptions
+        {
+            SingleWriter = true,
+            SingleReader = false
+        });
+
+    private readonly Channel<TcpClient> _clientPool = Channel.CreateBounded<TcpClient>(10);
+
 
     #region Constructor
 
@@ -68,7 +71,17 @@ public class Server : TcpListener
 
     #endregion
 
-    public async Task Begin(Express express)
+    public async Task Begin()
+    {
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) TcpListener starting");
+
+        Start();
+
+//        await RunUnbound();
+        await RunBound();
+    }
+
+    private async Task RunUnbound()
     {
         Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) TcpListener starting");
 
@@ -81,7 +94,7 @@ public class Server : TcpListener
             {
                 while (true)
                 {
-                    TcpClient client = await this.AcceptTcpClientAsync();
+                    var client = await this.AcceptTcpClientAsync();
                     await _clientQueue.Writer.WriteAsync(client);
                 }
             }
@@ -115,6 +128,50 @@ public class Server : TcpListener
                 }
             });
         }
+    }
+
+    private async Task RunBound()
+    {
+        Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) TcpListener starting");
+
+        Start();
+
+        // Start background accept loop
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                var client = await this.AcceptTcpClientAsync();
+                if (!_clientPool.Writer.TryWrite(client))
+                {
+                    Console.WriteLine("Pool full, rejecting connection");
+                    client.Close();
+                }
+            }
+        });
+
+        // Start background handlers (1 per slot in pool)
+        for (int i = 0; i < MaxHandlers; i++)
+        {
+            _ = Task.Run(async () =>
+            {
+                await foreach (var connection in _clientPool.Reader.ReadAllAsync())
+                {
+                    try
+                    {
+                        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Started client");
+                        RaiseHandleConnection(connection);
+                        //Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Ended client");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Handler exception: {ex}");
+                    }
+                }
+            });
+        }
+
+
     }
 
     /// <summary>

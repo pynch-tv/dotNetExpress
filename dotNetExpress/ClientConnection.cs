@@ -10,7 +10,7 @@ internal class Client
     static int ReqNr = 0;
 
 
-    public async Task Connection(Express express, TcpClient tcpClient)
+    public void Connection(Express express, TcpClient tcpClient)
     {
 
         var sw = Stopwatch.StartNew();
@@ -56,7 +56,7 @@ internal class Client
                     req.StreamReader.SetLength(contentLength);
                 }
 
-                await express.Dispatch(req, req.Res);
+                express.Dispatch(req, req.Res);
 
                 req.StreamReader?.Close();
 

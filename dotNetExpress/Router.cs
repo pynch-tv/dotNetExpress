@@ -91,7 +91,7 @@ public class Router
     /// <param name="req"></param>
     /// <param name="res"></param>
     /// <returns></returns>
-    public async Task<bool> Dispatch(Request req, Response res)
+    public bool Dispatch(Request req, Response res)
     {
         req.BaseUrl = MountPath;
 
@@ -185,7 +185,7 @@ public class Router
             {
                 req.BaseUrl = router.MountPath;
 
-                if (await router.Dispatch(req, res))
+                if (router.Dispatch(req, res))
                     return true;
             }
 

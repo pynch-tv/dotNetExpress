@@ -184,9 +184,9 @@ public class Express : IDisposable
     /// </summary>
     /// <param name="req"></param>
     /// <param name="res"></param>
-    internal async Task Dispatch(Request req, Response res)
+    internal void Dispatch(Request req, Response res)
     {
-        if (await _router.Dispatch(req, res))
+        if (_router.Dispatch(req, res))
             res.End();
     }
 
@@ -399,21 +399,17 @@ public class Express : IDisposable
         if (!string.IsNullOrEmpty(host))
             ipAddress = IPAddress.Parse(host);
 
-        //if (port == 0)
-        //    port = 0;
-
         Listener = new Server(ipAddress, port);
 
         Listener.HandleConnection += async (sender, tcpClient) =>
         {
             Client client = new();
-            await client.Connection(this, tcpClient);
+            client.Connection(this, tcpClient);
 
             var connected = tcpClient.Connected ? "left open" : "closed";
-//            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Connection handled, socket is {connected}");
         };
 
-        await Listener.Begin(this);
+        await Listener.Begin();
 
         callback?.Invoke();
 
