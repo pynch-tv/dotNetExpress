@@ -45,6 +45,7 @@ public static class WsFactory
         res.Set("Sec-WebSocket-Accept", HashKey(key));
 
         res.WriteHead(HttpStatusCode.SwitchingProtocols);
+        res.End();
 
         req.Protocol = "ws";
     }

@@ -26,5 +26,6 @@ public static class SseFactory
         res.Set("Keep-Alive");
 
         res.WriteHead(HttpStatusCode.OK);
+        res.End();
     }
 }
