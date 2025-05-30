@@ -63,12 +63,12 @@ internal class Client
                 if (req.Headers.TryGetValue("Upgrade", out var upgrade) && upgrade != null && upgrade.Equals("WebSocket", StringComparison.OrdinalIgnoreCase))
                 {
                     Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) websocket upgrade");
-                    break; // websocket
+                    return; // websocket
                 }
-                else if (req.Headers.TryGetValue("Content-Type", out var contentType) && contentType != null && contentType.Equals("text/event-stream", StringComparison.OrdinalIgnoreCase))
+                else if (req.Headers.TryGetValue("Accept", out var accept) && accept != null && accept.Equals("text/event-stream", StringComparison.OrdinalIgnoreCase))
                 {
                     Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) text/event-stream");
-                    break; // Server-Sent Events
+                    return; // Server-Sent Events
                 }
                 else if (req.Headers.TryGetValue("Connection", out var connection) && connection != null && connection.Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
                 {
@@ -92,7 +92,7 @@ internal class Client
         }
         catch (Exception e)
         {
-//            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Exception {e.Message}");
+            Debug.WriteLine($"[{Environment.CurrentManagedThreadId}] ({DateTime.Now:HH.mm.ss:ffff}) Exception {e.Message}");
             tcpClient.Close();
         }
     }
@@ -106,7 +106,7 @@ internal class Client
     /// <returns></returns>
     /// <exception cref="HttpProtocolException"></exception>
     /// <exception cref="UriFormatException"></exception>
-    private bool GetRequest(Express app, TcpClient tcpClient, out Request req)
+    private static bool GetRequest(Express app, TcpClient tcpClient, out Request req)
     {
         // create out variable
         req = new Request(app);
