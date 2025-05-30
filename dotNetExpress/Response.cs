@@ -53,7 +53,7 @@ public class Response : ServerResponse
     /// <returns></returns>
     public void Append(string field, string value)
     {
-        _headers[field] += value;
+        Headers[field] += value;
     }
 
     /// <summary>
@@ -382,7 +382,7 @@ public class Response : ServerResponse
 
         // Headers
         foreach (var header in options.Headers)
-            _headers.Add(header.Key, header.Value);
+            Headers.Add(header.Key, header.Value);
         if (options.LastModified)
             Set("Last-Modified", fi.LastWriteTime.ToUniversalTime().ToString("r"));
 
