@@ -22,9 +22,9 @@ internal partial class Examples
         // make it the default, so we don't need .md
         app.Set("view engine", "md");
 
-        app.Get("/", async Task (req, res, next) =>
+        app.Get("/", (req, res, next) =>
         {
-            await res.Render("index", new NameValueCollection() { { "title", "Markdown Example" } });
+            res.Render("index", new NameValueCollection() { { "title", "Markdown Example" } });
         });
 
         await app.Listen(port, () =>

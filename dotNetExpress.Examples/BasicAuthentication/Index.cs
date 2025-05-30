@@ -24,7 +24,7 @@ internal partial class Examples
             return DoBasicAuthentication;
 
             // Role-Based Access Control 
-            async Task DoBasicAuthentication(Request req, Response res, NextCallback next)
+            void DoBasicAuthentication(Request req, Response res, NextCallback next)
             {
                 var basicAuth = req.Get("authorization");
                 if (!string.IsNullOrEmpty(basicAuth))
@@ -76,9 +76,9 @@ internal partial class Examples
 
         app.Use(BasicAuth.BasicAuthentication());
 
-        app.Get("/v1", async Task (req, res, next) =>
+        app.Get("/v1", (req, res, next) =>
         {
-            await res.Send("Hello World");
+            res.Send("Hello World");
         });
 
         await app.Listen(port, () =>

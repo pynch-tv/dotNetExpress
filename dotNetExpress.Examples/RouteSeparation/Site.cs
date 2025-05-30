@@ -4,9 +4,9 @@ namespace dotNetExpress.examples;
 internal class Site
     {
 
-        internal static async Task Index(Request req, Response res, NextCallback? next)
+        internal static void Index(Request req, Response res, NextCallback? next)
         {
-            await res.Send("todo");
+            res.Send("todo");
         }
 
     }

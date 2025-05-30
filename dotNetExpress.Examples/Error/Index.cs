@@ -7,9 +7,9 @@ internal partial class Examples
         var app = new Express();
         const int port = 8080;
 
-        app.Get("/", async Task (req, res, next) => throw new Exception("broken"));
+        app.Get("/", (req, res, next) => throw new Exception("broken"));
 
-        app.Get("/next", async Task (req, res, next) =>
+        app.Get("/next", (req, res, next) =>
         {
         });
 

@@ -6,17 +6,17 @@ internal partial class Examples
 {
     internal static async Task Middleware()
     {
-        async Task middleware1(Request req, Response res, NextCallback? next = null)
+        async void middleware1(Request req, Response res, NextCallback? next = null)
         {
             next();
         }
 
-        async Task middleware2(Request req, Response res, NextCallback? next = null)
+        async void middleware2(Request req, Response res, NextCallback? next = null)
         {
             next();
         }
 
-        async Task middleware3(Request req, Response res, NextCallback? next = null)
+        async void middleware3(Request req, Response res, NextCallback? next = null)
         {
             next();
         }
@@ -27,7 +27,7 @@ internal partial class Examples
         // add a single middleware
         app.Use(middleware1);
 
-        app.Use(async Task (req, res, next) =>
+        app.Use((req, res, next) =>
         {
             Console.WriteLine("hello");
             next();

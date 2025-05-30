@@ -12,20 +12,20 @@ internal partial class Examples
         var app = new Express();
         const int port = 8080;
 
-        app.Get("/v1", async Task (req, res, next) =>
+        app.Get("/v1", (req, res, next) =>
         {
-            await res.Status(HttpStatusCode.OK).End();
+            res.Status(HttpStatusCode.OK).End();
         });
 
-        app.Get("/v1/:file", async Task (req, res, next) =>
+        app.Get("/v1/:file", (req, res, next) =>
         {
             var options = new SendFileOptions();
             options.Root = Path.Combine("d:/", "public");
             options.DotFiles = "deny";
-            options.Headers = new NameValueCollection { { "x-timestamp", DateTime.Now.ToUniversalTime().ToString("r") }, { "x-sent", "true" } };
+            options.Headers = new Dictionary<string, string> { { "x-timestamp", DateTime.Now.ToUniversalTime().ToString("r") }, { "x-sent", "true" } };
 
             var fileName = req.Params["file"];
-            await res.SendFile(fileName ?? string.Empty, options);
+            res.SendFile(fileName ?? string.Empty, options);
         });
 
         await app.Listen(port, () =>

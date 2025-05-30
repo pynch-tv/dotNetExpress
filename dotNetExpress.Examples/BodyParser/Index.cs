@@ -9,9 +9,9 @@ internal partial class Examples
 
 //        app.Use(Express.Json());
 
-        app.Post("/v1/servers/XT2/subscribe", Express.Json(),  async Task (req, res, next) =>
+        app.Post("/v1/servers/XT2/subscribe", Express.Json(),  (req, res, next) =>
         {
-            await res.Send("Hello World");
+            res.Send("Hello World");
         });
 
         await app.Listen(port, () =>

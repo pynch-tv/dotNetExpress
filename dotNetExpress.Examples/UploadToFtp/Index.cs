@@ -9,7 +9,7 @@ internal partial class Examples
         var app = new Express();
         const int port = 8080;
 
-        app.Post("/v1/servers/XT2/clips", Express.Json(), async Task (req, res, next) =>
+        app.Post("/v1/servers/XT2/clips", Express.Json(), (req, res, next) =>
         {
             var address = "192.168.0.197";
             var slot = "1";
@@ -22,7 +22,7 @@ internal partial class Examples
             req.StreamReader.CopyTo(requestStream);
             requestStream.Close();
 
-            await res.Send("Hello World");
+            res.Send("Hello World");
         });
 
         await app.Listen(port, () =>

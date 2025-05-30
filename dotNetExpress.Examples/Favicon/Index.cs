@@ -18,11 +18,11 @@ internal partial class Examples
             "AAAAAAAAAAAAAD//wAA//8AAP//AAD8HwAA++8AAPf3AADv+wAA7/sAAP//" +
             "AAD//wAA+98AAP//AAD//wAA//8AAP//AAD//wAA");
 
-        app.Get("/", async Task (req, res, next) => {
-            await res.Send("Hello World!");
+        app.Get("/", (req, res, next) => {
+            res.Send("Hello World!");
         });
 
-        app.Get("/favicon.ico", async Task (req, res, next) =>
+        app.Get("/favicon.ico", (req, res, next) =>
         {
             res.Status(HttpStatusCode.OK);
             res.Set("Content-Length", favicon.Length.ToString());
