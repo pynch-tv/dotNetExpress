@@ -15,7 +15,7 @@ public class ServerResponse
 
     protected HttpStatusCode _httpStatusCode = HttpStatusCode.OK;
 
-    protected Dictionary<string, string> _headers = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> Headers = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly ReadOnlyMemory<byte> CrLf = "\r\n"u8.ToArray();
 
@@ -62,7 +62,7 @@ public class ServerResponse
     /// <returns></returns>
     protected string? GetHeader(string field)
     {
-        return _headers[field];
+        return Headers[field];
     }
 
     /// <summary>
@@ -88,19 +88,19 @@ public class ServerResponse
     /// <returns></returns>
     public void Set(string field, string? value = null)
     {
-        if (_headers.TryGetValue(field, out var currentValue))
+        if (Headers.TryGetValue(field, out var currentValue))
         {
             if (string.IsNullOrEmpty(value)) return;
             else
             {
                 var content = currentValue?.Split(',');
                 if (content != null && !content.Contains(value))
-                    _headers[field] += ", " + value;
+                    Headers[field] += ", " + value;
             }
         }
         else
             if (null != value)
-                _headers[field] = value;
+                Headers[field] = value;
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public class ServerResponse
     public void Set(Dictionary<string, string> collection)
     {
         foreach (var kvp in collection)
-            _headers.Add(kvp.Key, kvp.Value);
+            Headers.Add(kvp.Key, kvp.Value);
     }
 
     /// <summary>
@@ -120,12 +120,12 @@ public class ServerResponse
     /// <param name="value"></param>
     public void Set(string field, int value)
     {
-        _headers[field] = value.ToString();
+        Headers[field] = value.ToString();
     }
 
     public void Set(string field, long value)
     {
-        _headers[field] = value.ToString();
+        Headers[field] = value.ToString();
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public class ServerResponse
     /// <returns></returns>
     public string? Get(string field)
     {
-        if (_headers.TryGetValue(field, out var value)) return value;
+        if (Headers.TryGetValue(field, out var value)) return value;
         return "";
     }
 
@@ -147,7 +147,7 @@ public class ServerResponse
     /// <returns></returns>
     protected bool HasHeader(string key)
     {
-        if (_headers.TryGetValue(key, out _)) return true;
+        if (Headers.TryGetValue(key, out _)) return true;
         else return false;
     }
 
@@ -236,7 +236,7 @@ public class ServerResponse
             foreach (var hdr in headers)
                 Set(hdr.Key, hdr.Value);
 
-        RaiseWriteHeaders(_headers);
+        RaiseWriteHeaders(Headers);
 
         if (string.IsNullOrEmpty(statusMessage))
             statusMessage = _httpStatusCode.ToString();
@@ -253,7 +253,7 @@ public class ServerResponse
 
         #region Stringify headers
 
-        foreach (var header2 in _headers)
+        foreach (var header2 in Headers)
             headerContent.AppendLine($"{header2.Key}: {header2.Value}");
 
         // last header line is empty
