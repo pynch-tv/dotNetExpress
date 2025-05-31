@@ -57,7 +57,7 @@ internal partial class Examples
         app.Use("/api/v1", apiv1);
         app.Use("/api/v2", apiv2);
 
-        apiv1.Get("/", async Task (req, res, next) =>
+        apiv1.Get("/", Task (req, res, next) =>
         {
             var serverId = req.Params["serverId"];
             Console.WriteLine($"serverId {serverId}");
@@ -66,18 +66,18 @@ internal partial class Examples
             var sOffset = req.Query["offset"];
             Console.WriteLine($"Pagination {sOffset} {sLimit}");
 
-            await res.Send("Hello World from api v1.");
+            res.Send("Hello World from api v1.");
         });
 
-        apiv2.Get("/", async Task (req, res, next) =>
+        apiv2.Get("/", (req, res, next) =>
         {
-            await res.Send("Hello World from api v2.");
+            res.Send("Hello World from api v2.");
         });
 
 
-        app.Get("/", async Task (req, res, next) =>
+        app.Get("/", (req, res, next) =>
         {
-            await res.Send("Hello World from root route.");
+            res.Send("Hello World from root route.");
         });
 
         await app.Listen(port, () =>
