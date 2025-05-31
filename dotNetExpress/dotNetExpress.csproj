@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net9.0</TargetFramework>
-    <PackageId>dotNetExpress/</PackageId>
+    <PackageId>dotNetExpress</PackageId>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -14,7 +14,7 @@
     <Description>Fast, unopinionated, minimalist web framework for dotnet</Description>
     <Copyright>Pynch 2025</Copyright>
     <Title>dotnetExpress</Title>
-    <Version>2.10.0</Version>
+    <Version>2.10.1</Version>
     <Authors>lathoub</Authors>
     <Company>pynch.tv</Company>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression> 
