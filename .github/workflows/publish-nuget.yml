@@ -22,10 +22,10 @@ jobs:
       run: dotnet restore
 
     - name: Build
-      run: dotnet build dotNetExpress/dotnetExpress.csproj --configuration Release --no-restore
+      run: dotnet build dotNetExpress/dotNetExpress.csproj --configuration Release --no-restore
 
     - name: Pack NuGet package
-      run: dotnet pack dotNetExpress/dotnetExpress.csproj --configuration Release --no-build --output ./nupkg
+      run: dotnet pack dotNetExpress/dotNetExpress.csproj --configuration Release --no-build --output ./nupkg
 
     - name: Push to NuGet
       run: dotnet nuget push "./nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
