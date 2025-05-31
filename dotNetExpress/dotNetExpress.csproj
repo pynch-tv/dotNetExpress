@@ -14,7 +14,7 @@
     <Description>Fast, unopinionated, minimalist web framework for dotnet</Description>
     <Copyright>Pynch 2025</Copyright>
     <Title>dotnetExpress</Title>
-    <Version>2.10.1</Version>
+    <Version>2.10.2</Version>
     <Authors>lathoub</Authors>
     <Company>pynch.tv</Company>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression> 
