@@ -9,7 +9,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/pynch-tv/dotNetExpress</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
+    <RepositoryType>nuget</RepositoryType>
     <PackageTags>express csharp dotnet http-server</PackageTags>
     <Description>Fast, unopinionated, minimalist web framework for dotnet</Description>
     <Copyright>Pynch 2025</Copyright>
